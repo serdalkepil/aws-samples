@@ -18,6 +18,10 @@ Parameters:
         - t2.small
         - a1.xlarge
         - m5.large
+  KeyName:
+    Description: Name of SSH KeyPair
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    ConstraintDescription: Provide the name of an existing SSH key pair
 
 Resources:
   VPC:
@@ -130,6 +134,7 @@ Resources:
       ImageId: !Ref AmazonLinuxAMIID
       InstanceType: !Ref WebServerInstanceType
       IamInstanceProfile: !Ref DeployRoleProfile
+      KeyName: !Ref KeyName
       NetworkInterfaces: 
         - AssociatePublicIpAddress: true
           DeviceIndex: 0
