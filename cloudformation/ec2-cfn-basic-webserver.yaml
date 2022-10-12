@@ -158,6 +158,58 @@ Resources:
         - Key: 'role'
           Value: 'webserver'
 
+  MySignalInstance:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      'AWS::CloudFormation::Init':
+        config:
+          files:
+            /tmp/test.txt:
+              content: Hello world!
+              mode: '000755'
+              owner: root
+              group: root
+    Properties:
+      ImageId: !Ref AmazonLinuxAMIID
+      IamInstanceProfile: !Ref DeployRoleProfile
+      InstanceType: t2.micro
+      NetworkInterfaces: 
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0
+          GroupSet: 
+            - Ref: PublicSecurityGroup
+          SubnetId: 
+            Ref: PublicSubnetA
+      UserData: !Base64 
+        'Fn::Join':
+          - ''
+          - - |
+              #!/bin/bash -x
+            - |
+              # Install the files and packages from the metadata
+            - yum install -y aws-cfn-bootstrap
+            - '/opt/aws/bin/cfn-init -v '
+            - '         --stack '
+            - !Ref 'AWS::StackName'
+            - '         --resource MySignalInstance '
+            - '         --region '
+            - !Ref 'AWS::Region'
+            - |+
+
+            - |
+              # Signal the status from cfn-init
+            - '/opt/aws/bin/cfn-signal -s $? '
+            - '         --stack '
+            - !Ref 'AWS::StackName'
+            - '         --resource MySignalInstance '
+            - '         --region '
+            - !Ref 'AWS::Region'
+            - |+
+
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+
 Outputs:
   URL:
     Value:
