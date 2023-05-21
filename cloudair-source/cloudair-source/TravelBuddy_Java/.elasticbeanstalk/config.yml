@@ -1,0 +1,20 @@
+branch-defaults:
+  default:
+    environment: Travelbuddy-env
+environment-defaults:
+  Travelbuddy-env:
+    branch: null
+    repository: null
+global:
+  application_name: TravelBuddy
+  default_ec2_keyname: qwikLABS-L18492-133139
+  default_platform: arn:aws:elasticbeanstalk:us-west-2::platform/Tomcat 8.5 with Java
+    8 running on 64bit Amazon Linux/3.1.1
+  default_region: us-west-2
+  include_git_submodules: true
+  instance_profile: null
+  platform_name: null
+  platform_version: null
+  profile: aws-lab-env
+  sc: null
+  workspace_type: Application

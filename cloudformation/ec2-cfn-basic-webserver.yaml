@@ -15,7 +15,7 @@ Parameters:
     Description: Select your EC2 instance type
     AllowedValues:
         - t2.micro
-        - t2.small
+        - t3.small
         - a1.xlarge
         - m5.large
   KeyName:
@@ -60,6 +60,19 @@ Resources:
         - Key: 'Name'
           Value: !Join ['', [!Ref 'AWS::StackName', '::PublicSubnetA'] ]
 
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select 
+        - 0
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      VpcId: !Ref VPC
+      CidrBlock: 10.50.50.0/20
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: 'Name'
+          Value: !Join ['', [!Ref 'AWS::StackName', '::PublicSubnetB'] ]
+
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -81,6 +94,13 @@ Resources:
     Properties:
       RouteTableId: !Ref PublicRouteTable
       SubnetId: !Ref PublicSubnetA
+
+  PublicSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetB
+
 
   PublicSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -149,7 +169,7 @@ Resources:
             yum install -y httpd
             yum install -y wget
             chkconfig httpd on
-            echo "<html><body><h1>Hey Mandalorian!</h1><h3>This is the way...</h3></body></html>" >/var/www/html/index.html
+            echo "<html><body><h1>Hey, This is your EC2!</h1><h3>deployed by CloudFormation...</h3></body></html>" >/var/www/html/index.html
             systemctl start httpd
             systemctl enable httpd
       Tags:

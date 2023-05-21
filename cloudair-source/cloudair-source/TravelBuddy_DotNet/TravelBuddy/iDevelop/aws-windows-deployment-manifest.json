@@ -1,0 +1,16 @@
+{
+    "manifestVersion": 1,
+    "deployments": 
+    {
+      "msDeploy":
+      [{
+        "name": "TravelBuddy",
+        "parameters":
+        {
+          "appBundle": "travelbuddy_site.zip",
+          "iisPath": "/",
+          "iisWebSite": "Default Web Site"
+        }
+      }]
+    }
+}

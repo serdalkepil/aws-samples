@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27004.2008
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TravelBuddy", "TravelBuddy\TravelBuddy.csproj", "{9E37D625-1F43-4ABF-AC3F-874F11EFD1F5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TravelBuddy.Tests", "TravelBuddy.Tests\TravelBuddy.Tests.csproj", "{A322A15A-30B4-491A-8D4F-59A5A545F25A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9E37D625-1F43-4ABF-AC3F-874F11EFD1F5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E37D625-1F43-4ABF-AC3F-874F11EFD1F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E37D625-1F43-4ABF-AC3F-874F11EFD1F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E37D625-1F43-4ABF-AC3F-874F11EFD1F5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A322A15A-30B4-491A-8D4F-59A5A545F25A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A322A15A-30B4-491A-8D4F-59A5A545F25A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A322A15A-30B4-491A-8D4F-59A5A545F25A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A322A15A-30B4-491A-8D4F-59A5A545F25A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F1731E3C-C96C-450D-BBB1-4A1624B22163}
+	EndGlobalSection
+EndGlobal

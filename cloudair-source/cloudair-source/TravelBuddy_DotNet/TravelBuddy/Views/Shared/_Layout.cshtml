@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="Dev Lounge - Monoliths to Microservices">
+    <meta name="author" content="Adam Larter, Developer Solutions Architect, Melbourne Australia">
+    <link rel="icon" href="~/images/favicon.ico">
+
+    <title>TravelBuddy - Get Traveling!</title>
+
+    @Styles.Render("~/Content/css")
+    @RenderSection("pageCSS", false)
+    @Scripts.Render("~/bundles/modernizr")
+
+</head>
+<body>
+    
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark">
+        <a class="navbar-brand" href="#">TravelBuddy</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNavDropdown">
+            <ul class="navbar-nav">
+                <li class="nav-item active">
+                    <a class="nav-link" href="#">Home<span class="sr-only">(current)</span></a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">Contact</a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        My Activity
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+                        <a class="dropdown-item" href="#">Make booking</a>
+                        <a class="dropdown-item" href="#">Advanced search</a>
+                        <a class="dropdown-item" href="#">My activity statement</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-header">Shopping cart</a>
+                        <a class="dropdown-item" href="#">Show cart</a>
+                        <a class="dropdown-item" href="#">Buy all in cart</a>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </nav>
+   
+    @RenderBody()
+    <hr />
+
+    <!-- FOOTER -->
+    <div class="container marketing">
+        <footer>
+            <p class="pull-right">
+                <a href="#">Back to top</a>
+            </p>
+            <p>
+                &copy; @DateTime.Now.Year TravelBuddy, Inc. &middot; <a href="#">Privacy</a> &middot; <a href="#">Terms</a>
+            </p>
+        </footer>
+    </div>
+
+    @Scripts.Render("~/bundles/jquery")
+    @Scripts.Render("~/bundles/bootstrap")
+    @Scripts.Render("~/bundles/site")
+
+    @RenderSection("scripts", required: false)
+</body>
+</html>
