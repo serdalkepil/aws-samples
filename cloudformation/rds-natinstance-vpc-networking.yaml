@@ -1,0 +1,349 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Nat Instance with RDS - Mysql
+Parameters:
+  VPCCIDR:
+    Description: CIDR Block for  VPC
+    Type: String
+    Default: 10.0.0.0/16
+    AllowedValues:
+      - 10.0.0.0/16
+  PublicSubnet1Param:
+    Description: Public Subnet 1
+    Type: String
+    Default: 10.0.10.0/24
+    AllowedValues:
+      - 10.0.10.0/24
+  PublicSubnet2Param:
+    Description: Public Subnet 2
+    Type: String
+    Default: 10.0.15.0/24
+    AllowedValues:
+      - 10.0.15.0/24
+  PrivateSubnet1Param:
+    Description: Private Subnet 1
+    Type: String
+    Default: 10.0.50.0/24
+    AllowedValues:
+      - 10.0.50.0/24
+  PrivateSubnet2Param:
+    Description: Private Subnet 2
+    Type: String
+    Default: 10.0.55.0/24
+    AllowedValues:
+      - 10.0.55.0/24
+
+  LatestLinux2AMI:
+    Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+
+  KeyName:
+    Description: Name of SSH KeyPair
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    ConstraintDescription: Provide the name of an existing SSH key pair
+
+Resources:
+
+  VPC:
+    Type: "AWS::EC2::VPC"
+    Properties:
+      CidrBlock:
+        Ref: VPCCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: VPC
+          Value:  VPC
+        - Key: Name
+          Value:  VPC
+
+  VPCInternetGateway:
+    Type: "AWS::EC2::InternetGateway"
+
+  VPCAttachGateway:
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties:
+      VpcId:
+        Ref: VPC
+      InternetGatewayId:
+        Ref: VPCInternetGateway
+
+  VPCPublicSubnet1:
+    Type: "AWS::EC2::Subnet"
+    DependsOn: VPCAttachGateway
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock:
+        Ref: PublicSubnet1Param
+      AvailabilityZone: !Select 
+        - 0
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value:  VPC Public Subnet 1
+
+  VPCPublicSubnet2:
+    Type: "AWS::EC2::Subnet"
+    DependsOn: VPCAttachGateway
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock:
+        Ref: PublicSubnet2Param
+      AvailabilityZone: !Select 
+        - 1
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value:  VPC Public Subnet 2
+
+  VPCPrivateSubnet1:
+    Type: "AWS::EC2::Subnet"
+    DependsOn: VPCAttachGateway
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock:
+        Ref: PrivateSubnet1Param
+      AvailabilityZone: !Select 
+        - 0
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value:  VPC Private Subnet 1
+
+  VPCPrivateSubnet2:
+    Type: "AWS::EC2::Subnet"
+    DependsOn: VPCAttachGateway
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock:
+        Ref: PrivateSubnet2Param
+      AvailabilityZone: !Select 
+        - 1
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value:  VPC Private Subnet 2
+
+  VPCPublicRouteTable:
+    Type: "AWS::EC2::RouteTable"
+    DependsOn:
+      - VPCPublicSubnet1
+      - VPCPublicSubnet2
+    Properties:
+      VpcId:
+        Ref: VPC
+      Tags:
+        - Key: Name
+          Value: VPC Public Route Table
+
+  VPCPublicRoute:
+    Type: "AWS::EC2::Route"
+    Properties:
+      RouteTableId:
+        Ref: VPCPublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: VPCInternetGateway
+
+  VPCPublicSubnet1RouteTableAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    DependsOn: VPCPublicRoute
+    Properties:
+      SubnetId:
+        Ref: VPCPublicSubnet1
+      RouteTableId:
+        Ref: VPCPublicRouteTable
+
+  VPCPublicSubnet2RouteTableAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    DependsOn: VPCPublicRoute
+    Properties:
+      SubnetId:
+        Ref: VPCPublicSubnet2
+      RouteTableId:
+        Ref: VPCPublicRouteTable
+
+  VPCPrivateRouteTable:
+    Type: "AWS::EC2::RouteTable"
+    DependsOn:
+      - VPCPrivateSubnet1
+      - VPCPrivateSubnet2
+    Properties:
+      VpcId:
+        Ref: VPC
+      Tags:
+        - Key: Name
+          Value: VPC Private Route Table
+
+  PrivateRoute:
+    Type: "AWS::EC2::Route"
+    Properties:
+      RouteTableId: !Ref VPCPrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      InstanceId: !Ref NATInstance
+
+  VPCPrivateSubnet1RouteTableAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    DependsOn: PrivateRoute
+    Properties:
+      SubnetId:
+        Ref: VPCPrivateSubnet1
+      RouteTableId:
+        Ref: VPCPrivateRouteTable
+
+  VPCPrivateSubnet2RouteTableAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    DependsOn: PrivateRoute
+    Properties:
+      SubnetId:
+        Ref: VPCPrivateSubnet2
+      RouteTableId:
+        Ref: VPCPrivateRouteTable
+
+  NATSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: Enable internal access to the NAT device
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 1024
+          CidrIp: !Ref PrivateSubnet1Param
+        - IpProtocol: udp
+          FromPort: 0
+          ToPort: 1024
+          CidrIp: !Ref PrivateSubnet1Param
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 1024
+          CidrIp: !Ref PrivateSubnet2Param
+        - IpProtocol: udp
+          FromPort: 0
+          ToPort: 1024
+          CidrIp: !Ref PrivateSubnet2Param
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: udp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0
+
+  NATInstance:
+    Type: "AWS::EC2::Instance"
+    DependsOn: VPCPublicSubnet1RouteTableAssociation
+    Properties:
+      ImageId: !Ref LatestLinux2AMI
+      InstanceType: t3.micro
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - DeviceIndex: "0"
+          AssociatePublicIpAddress: true
+          SubnetId: !Ref VPCPublicSubnet1
+          GroupSet:
+            - !Ref NATSecurityGroup
+      SourceDestCheck: false
+      Tags:
+        - Key: Name
+          Value: NAT Instance
+      UserData: !Base64
+        "Fn::Join":
+          - |4+
+
+          -   - "#!/bin/bash"
+              - yum -y update
+              - yum install -y mysql
+              - echo 1 > /proc/sys/net/ipv4/ip_forward
+              - echo 0 > /proc/sys/net/ipv4/conf/eth0/send_redirects
+              - >-
+                /sbin/iptables -t nat -A POSTROUTING -o eth0 -s 0.0.0.0/0 -j
+                MASQUERADE
+              - /sbin/iptables-save > /etc/sysconfig/iptables
+              - mkdir -p /etc/sysctl.d/
+              - cat <<EOF > /etc/sysctl.d/nat.conf
+              - net.ipv4.ip_forward = 1
+              - net.ipv4.conf.eth0.send_redirects = 0
+              - |
+                EOF
+
+  DBSubnetGroup:
+    Type: "AWS::RDS::DBSubnetGroup"
+    DependsOn:
+      - VPCPrivateSubnet1RouteTableAssociation
+      - VPCPrivateSubnet2RouteTableAssociation
+    Properties:
+      DBSubnetGroupDescription:  DB Subnet Group
+      SubnetIds:
+        - !Ref VPCPrivateSubnet1
+        - !Ref VPCPrivateSubnet2
+
+  DBSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: DB Instance Security Group
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: DBSecurityGroup
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: !Ref VPCCIDR
+
+  DbMasterCredentials:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: dbMasterPassword
+      Description: Stores the password of the database root user
+      GenerateSecretString:
+        PasswordLength: 32
+        SecretStringTemplate: '{"username": "clusteradmin"}'
+        GenerateStringKey: password
+        ExcludePunctuation: true
+      Tags:
+        - Key: Name
+          Value: MySQL DB Instance Credentials
+
+  DbMasterCredentialsAttachment:
+    Type: AWS::SecretsManager::SecretTargetAttachment
+    Properties: 
+      SecretId: !Ref DbMasterCredentials
+      TargetId: !Ref DBInstance
+      TargetType: AWS::RDS::DBInstance
+
+  DBInstance:
+    Type: "AWS::RDS::DBInstance"
+    DependsOn: DbMasterCredentials
+    Properties:
+      DBInstanceIdentifier: randomdb
+      AllocatedStorage: 20
+      DBInstanceClass: db.t3.micro
+      Engine: mysql
+      MasterUsername: '{{resolve:secretsmanager:dbMasterPassword:SecretString:username}}'
+      MasterUserPassword: '{{resolve:secretsmanager:dbMasterPassword:SecretString:password}}'
+      MultiAZ: false
+      PubliclyAccessible: false
+      StorageType: gp3
+      StorageEncrypted: true
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - !Ref DBSecurityGroup
+      Tags:
+        - Key: Name
+          Value: MySQL DB Instance
+
+Outputs:
+
+  RDSInstanceAddress:
+    Value: !GetAtt DBInstance.Endpoint.Address
+    Description: The DNS name for your RDS instance
+
+  Region:
+    Value: !Ref AWS::Region

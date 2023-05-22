@@ -92,3 +92,7 @@ eb tags
 
     Add, delete, update, and list tags of an Elastic Beanstalk resource
 
+Elastic Beanstalk CLI install with automated scripts
+
+    https://github.com/aws/aws-elastic-beanstalk-cli-setup#macoslinux
+    Linux --> python ./aws-elastic-beanstalk-cli-setup/scripts/ebcli_installer.py
