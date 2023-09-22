@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: eks-sample-linux-deployment
-  namespace: eks-sample-app
+  name: eks-nodejs-deployment
+  namespace: eks-nodejs-app
   labels:
-    app: eks-sample-linux-app
+    app: eks-nodejs-app
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: eks-sample-linux-app
+      app: eks-nodejs-app
   template:
     metadata:
       labels:
-        app: eks-sample-linux-app
+        app: eks-nodejs-app
     spec:
       affinity:
         nodeAffinity:
@@ -26,7 +26,7 @@ spec:
                 - amd64
                 - arm64
       containers:
-      - name: nginx
+      - name: nodejs-app
         image: 029916934188.dkr.ecr.eu-west-1.amazonaws.com/test:latest
         ports:
         - name: http

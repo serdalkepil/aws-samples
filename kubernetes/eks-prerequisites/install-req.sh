@@ -28,8 +28,9 @@ echo "update python version is done ############################################
 
 # step 3
 echo "update AWS CLI version to latest ##############################################"
-pip3 install awscli --upgrade --user
-echo 'export PATH=$HOME/redux/.local/bin/:$PATH' >> ~/.bashrc
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
 echo "update AWS CLI version to latest is done ##############################################"
 
 # step 4
