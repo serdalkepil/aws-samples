@@ -38,15 +38,15 @@ echo "$(date "+%d%m%Y %T") : ---------- Ending Container Builds ----------" >> $
 #### CREATE DATABASE AND UPDATE SCHEMA ####
 echo "$(date "+%d%m%Y %T") : Creating Database & Schema" >> $LOGFILE 2>&1
 sleep 20
-mysql -h "localhost" -u $JDBC_UID -p$JDBC_PWD --protocol=tcp -e "CREATE DATABASE ${DB_NAME};" >> $LOGFILE 2>&1
+mysql -h "localhost" -u $JDBC_UID -p$JDBC_PWD --protocol=tcp --skip-ssl -e "CREATE DATABASE ${DB_NAME};" >> $LOGFILE 2>&1
 sleep 25
-mysql -h "localhost" -u $JDBC_UID -p$JDBC_PWD --protocol=tcp -e "GRANT SELECT,INSERT,UPDATE,DELETE ON ${DB_NAME}.* TO '${JDBC_UID}'@'%' IDENTIFIED BY '${JDBC_PWD}';" >> $LOGFILE 2>&1
+mysql -h "localhost" -u $JDBC_UID -p$JDBC_PWD --protocol=tcp --skip-ssl -e "GRANT SELECT,INSERT,UPDATE,DELETE ON ${DB_NAME}.* TO '${JDBC_UID}'@'%' IDENTIFIED BY '${JDBC_PWD}';" >> $LOGFILE 2>&1
 sleep 5
-mysql -h "localhost" -u $JDBC_UID -p$JDBC_PWD --protocol=tcp -e "FLUSH PRIVILEGES;" >> $LOGFILE 2>&1
+mysql -h "localhost" -u $JDBC_UID -p$JDBC_PWD --protocol=tcp --skip-ssl -e "FLUSH PRIVILEGES;" >> $LOGFILE 2>&1
 sleep 10
-mysql -h "localhost" -u $JDBC_UID -p$JDBC_PWD --protocol=tcp < seed_cloudair_db.sql >> $LOGFILE 2>&1
+mysql -h "localhost" -u $JDBC_UID -p$JDBC_PWD --protocol=tcp --skip-ssl < seed_cloudair_db.sql >> $LOGFILE 2>&1
 sleep 5
-mysql -h "localhost" -u $JDBC_UID -p$JDBC_PWD --protocol=tcp -e "SHOW DATABASES;" >> $LOGFILE 2>&1
+mysql -h "localhost" -u $JDBC_UID -p$JDBC_PWD --protocol=tcp --skip-ssl -e "SHOW DATABASES;" >> $LOGFILE 2>&1
 echo "$(date "+%d%m%Y %T") : ---------- Database & Schema creation completed ----------" >> $LOGFILE 2>&1
 #### LAUNCH CLOUDAIR ####
 echo "$(date "+%d%m%Y %T") : Launching Cloud Air Container" >> $LOGFILE 2>&1
