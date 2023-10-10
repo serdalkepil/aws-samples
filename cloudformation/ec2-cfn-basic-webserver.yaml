@@ -64,10 +64,10 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone: !Select 
-        - 0
+        - 1
         - Fn::GetAZs: !Ref 'AWS::Region'
       VpcId: !Ref VPC
-      CidrBlock: 10.50.50.0/20
+      CidrBlock: 10.50.48.0/20
       MapPublicIpOnLaunch: true
       Tags:
         - Key: 'Name'
@@ -101,7 +101,6 @@ Resources:
       RouteTableId: !Ref PublicRouteTable
       SubnetId: !Ref PublicSubnetB
 
-
   PublicSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -113,7 +112,7 @@ Resources:
         IpProtocol: tcp
         FromPort: '80'
         ToPort: '80'
-        CidrIp: !Ref MyIP
+        CidrIp: 0.0.0.0/0
       SecurityGroupEgress:
       - Description: Allow all traffic egress
         IpProtocol: -1
@@ -168,6 +167,7 @@ Resources:
             yum update -y
             yum install -y httpd
             yum install -y wget
+            yum install -y jq
             chkconfig httpd on
             echo "<html><body><h1>Hey, This is your EC2!</h1><h3>deployed by CloudFormation...</h3></body></html>" >/var/www/html/index.html
             systemctl start httpd
