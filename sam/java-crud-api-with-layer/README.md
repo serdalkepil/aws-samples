@@ -1,4 +1,4 @@
-# aws-serverless-java-crud-api-sam-app
+# aws-serverless-sam-app
 
 ## About the application
 It is an AWS SAM application that implements a CRUD API with Lambda handlers written in Java.

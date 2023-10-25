@@ -23,5 +23,3 @@ mvn install
 cd ..
 sam build 
 sam deploy --guided
-
-
