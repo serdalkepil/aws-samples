@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  aws-cognito-jwt-validator-app
+
+  Sample SAM Template for aws-cognito-jwt-validator-app
+  
+Globals:
+  Function:
+    Timeout: 9
+    Environment:
+      Variables:
+        UserPoolId: <USER_POOL_ID>
+        ClientId: <CLIENT_ID>
+        
+Resources:
+  ValidateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: validate-fnc/
+      Handler: app.lambdaHandler
+      Runtime: nodejs18.x
+      Architectures:
+        - x86_64
+
+Outputs:
+  ValidateFunction:
+    Description: "Validate Lambda Function ARN"
+    Value: !GetAtt ValidateFunction.Arn

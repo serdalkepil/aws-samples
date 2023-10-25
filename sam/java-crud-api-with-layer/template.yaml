@@ -1,0 +1,157 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  Stage:
+    Type: String
+    Description: Stage name to deploy resources to
+    AllowedValues:
+      - dev
+      - stage
+      - production
+
+Globals:
+  Function:
+    Runtime: java8.al2
+    Timeout: 20
+    MemorySize: 512
+    AutoPublishAlias: !Ref Stage
+    Environment:
+      Variables:
+        TABLE: !Ref BooksTable
+    Layers:
+      - Ref: MyLayer
+    Tracing: Active
+
+Resources:
+
+  # Lambda Layer for the Lambda functions
+  MyLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: lambda-layer
+      CompatibleRuntimes:
+        - java8
+    Metadata:
+      BuildMethod: java8
+
+  # API Gateway resource
+  BooksApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub "books-api-${Stage}"
+      StageName: !Ref Stage
+      Variables:
+        LAMBDA_ALIAS: !Ref Stage
+      TracingEnabled: true
+
+  # DynamoDB table
+  BooksTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: isbn
+        Type: String
+      SSESpecification:
+        SSEEnabled: true
+
+  #Lambda functions
+
+  GetItemFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: com.home.amazon.serverless.lambda.GetItemHandler::handleRequest
+      CodeUri: get-item-service
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref BooksTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /books/{isbn}
+            Method: get
+            RestApiId:
+              Ref: BooksApi
+    Metadata:
+      BuildMethod: makefile
+
+  PutItemFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: com.home.amazon.serverless.lambda.PutItemHandler::handleRequest
+      CodeUri: put-item-service
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref BooksTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /books
+            Method: post
+            RestApiId:
+              Ref: BooksApi
+    Metadata:
+      BuildMethod: makefile
+
+  DeleteItemFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: com.home.amazon.serverless.lambda.DeleteItemHandler::handleRequest
+      CodeUri: delete-item-service
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:DescribeTable
+                - dynamodb:DeleteItem
+              Resource: {
+                "Fn::Sub": [
+                    "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tableName}",
+                  {
+                    "tableName": {
+                      "Ref": "BooksTable"
+                    }
+                  }
+                ]
+              }
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /books/{isbn}
+            Method: delete
+            RestApiId:
+              Ref: BooksApi
+    Metadata:
+      BuildMethod: makefile
+
+  UpdateItemFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: com.home.amazon.serverless.lambda.UpdateItemHandler::handleRequest
+      CodeUri: update-item-service
+      AutoPublishAlias: !Ref Stage
+      Environment:
+        Variables:
+          TABLE: !Ref BooksTable
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref BooksTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /books
+            Method: put
+            RestApiId:
+              Ref: BooksApi
+    Metadata:
+      BuildMethod: makefile
+
+Outputs:
+  ApiEndpoint:
+    Description: "API endpoint"
+    Value: !Sub "https://${BooksApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/books"

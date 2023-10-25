@@ -1,0 +1,4 @@
+/.aws-sam/
+/.idea/
+/samconfig.toml
+*/target

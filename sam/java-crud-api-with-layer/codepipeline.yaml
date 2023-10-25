@@ -1,0 +1,653 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Description: >
+  This template deploys a CodePipiline with its required resources.
+
+  The following stages are predefined in this template:
+  - Source
+  - UpdatePipeline
+  - BuildAndDeployFeatureStack (FeatureGitBranch only)
+  - BuildAndPackage (MainGitBranch only)
+  - DeployTest (MainGitBranch only)
+  - DeployProd (MainGitBranch only)
+
+  **WARNING** You will be billed for the AWS resources used if you create a stack from this template.
+
+
+# To deploy this template and connect to the main git branch, run this against the leading account:
+# `sam deploy -t codepipeline.yaml --stack-name <stack-name> --capabilities=CAPABILITY_IAM`.
+# After creating the stack, the CodeStar Connection is in PENDING status by default. You must complete 
+# the OAuth handshake with the third-party provider using the installation associated with your connection.
+# See https://docs.aws.amazon.com/dtconsole/latest/userguide/connections-update.html for instructions.
+
+# If later you need to deploy a new CodePipeline to connect to a non-main git branch, run
+# ```
+# sam deploy -t codepipeline.yaml --stack-name <stack-name> --capabilities=CAPABILITY_IAM \
+#   --parameter-overrides="FeatureGitBranch=<branch-name> CodeStarConnectionArn=<codestar-connection-arn>"
+# ```
+
+
+Parameters:
+  GitProviderType:
+    Type: String
+    Default: "GitHub"
+  FullRepositoryId:
+    Type: String
+    Default: "rimironenko/aws-serverless-sam-app"
+  MainGitBranch:
+    Type: String
+    Default: "master"
+  SamTemplate:
+    Type: String
+    Default: "template.yaml"
+  TestingRegion:
+    Type: String
+    Default: "us-east-1"
+  TestingStackName:
+    Type: String
+    Default: "sam-app"
+  TestingPipelineExecutionRole:
+    Type: String
+    Default: "arn:aws:iam::257468754611:role/aws-sam-cli-managed-dev-pipe-PipelineExecutionRole-XFWH2DDTCKXL"
+  TestingCloudFormationExecutionRole:
+    Type: String
+    Default: "arn:aws:iam::257468754611:role/aws-sam-cli-managed-dev-p-CloudFormationExecutionR-R18CSC1DEEZK"
+  TestingArtifactBucket:
+    Type: String
+    Default: "aws-sam-cli-managed-dev-pipeline-artifactsbucket-956ijnhftgzs"
+  TestingImageRepository:
+    Type: String
+    # If there are functions with "Image" PackageType in your template,
+    # Update the line below with image repository URL and add "--image-repository ${TESTING_IMAGE_REPOSITORY}" to
+    # prod "sam package" and "sam deploy" commands in buildspec files (in pipeline/).
+    Default: ""
+  ProdRegion:
+    Type: String
+    Default: "us-east-1"
+  ProdStackName:
+    Type: String
+    Default: "sam-app"
+  ProdPipelineExecutionRole:
+    Type: String
+    Default: "arn:aws:iam::257468754611:role/aws-sam-cli-managed-prod-pip-PipelineExecutionRole-WSO0ECDEKSMY"
+  ProdCloudFormationExecutionExeRole:
+    Type: String
+    Default: "arn:aws:iam::257468754611:role/aws-sam-cli-managed-prod-CloudFormationExecutionR-961SRU2YBG7H"
+  ProdArtifactBucket:
+    Type: String
+    Default: "aws-sam-cli-managed-prod-pipeline-artifactsbucket-qpu7r3a6dah4"
+  ProdImageRepository:
+    Type: String
+    # If there are functions with "Image" PackageType in your template,
+    # Update the line below with image repository URL and add "--image-repository ${PROD_IMAGE_REPOSITORY}" to
+    # prod "sam package" and "sam deploy" commands in buildspec files (in pipeline/).
+    Default: ""
+  # CodeStarConnectionArn and FeatureGitBranch are required for pipelines for feature branches
+  CodeStarConnectionArn:
+    Type: String
+    Default: ""
+  FeatureGitBranch:
+    Type: String
+    Default: ""
+
+Conditions:
+  IsMainBranchPipeline: !Equals [!Ref FeatureGitBranch, ""]
+  IsFeatureBranchPipeline: !Not [Condition: IsMainBranchPipeline]
+  CreateConnection: !Equals [!Ref CodeStarConnectionArn, ""]
+
+Resources:
+  #   ____                           
+  # / ___|  ___  _   _ _ __ ___ ___ 
+  # \___ \ / _ \| | | | '__/ __/ _ \
+  #   ___) | (_) | |_| | | | (_|  __/
+  # |____/ \___/ \__,_|_|  \___\___|
+  CodeStarConnection:
+    Condition: CreateConnection
+    Type: AWS::CodeStarConnections::Connection
+    Properties: 
+      ConnectionName: GitRepositoryConnection
+      ProviderType: !Ref GitProviderType
+
+  #  ____  _            _ _            
+  # |  _ \(_)_ __   ___| (_)_ __   ___ 
+  # | |_) | | '_ \ / _ | | | '_ \ / _ \
+  # |  __/| | |_) |  __| | | | | |  __/
+  # |_|   |_| .__/ \___|_|_|_| |_|\___|
+  #         |_|                        
+  Pipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      ArtifactStore:
+        Location: !Ref PipelineArtifactsBucket
+        Type: S3
+      RoleArn: !GetAtt CodePipelineExecutionRole.Arn
+      RestartExecutionOnUpdate: true
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: SourceCodeRepo
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeStarSourceConnection
+                Version: "1"
+              Configuration:
+                ConnectionArn: !If [CreateConnection, !Ref CodeStarConnection, !Ref CodeStarConnectionArn]
+                FullRepositoryId: !Ref FullRepositoryId
+                BranchName: !If [IsFeatureBranchPipeline, !Ref FeatureGitBranch, !Ref MainGitBranch]
+              OutputArtifacts:
+                - Name: SourceCodeAsZip
+              RunOrder: 1
+        - Name: UpdatePipeline
+          Actions:
+            - Name: CreateChangeSet
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: "1"
+              Configuration:
+                ActionMode: CHANGE_SET_REPLACE
+                RoleArn: !GetAtt PipelineStackCloudFormationExecutionRole.Arn
+                StackName: !Ref AWS::StackName
+                ChangeSetName: !Sub ${AWS::StackName}-ChangeSet
+                TemplatePath: SourceCodeAsZip::codepipeline.yaml
+                Capabilities: CAPABILITY_NAMED_IAM
+                ParameterOverrides: !Sub |
+                  {
+                    "FeatureGitBranch": "${FeatureGitBranch}",
+                    "CodeStarConnectionArn": "${CodeStarConnectionArn}"
+                  }
+              InputArtifacts:
+                - Name: SourceCodeAsZip
+              RunOrder: 1
+            - Name: ExecuteChangeSet
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: "1"
+              Configuration:
+                ActionMode: CHANGE_SET_EXECUTE
+                RoleArn: !GetAtt PipelineStackCloudFormationExecutionRole.Arn
+                StackName: !Ref AWS::StackName
+                ChangeSetName: !Sub ${AWS::StackName}-ChangeSet
+              OutputArtifacts:
+                - Name: !Sub ${AWS::StackName}ChangeSet
+              RunOrder: 2
+
+        # Uncomment and modify the following step for running the unit-tests
+        # - Name: UnitTest
+        #   Actions:
+        #     - Name: UnitTest
+        #       ActionTypeId:
+        #         Category: Build
+        #         Owner: AWS
+        #         Provider: CodeBuild
+        #         Version: "1"
+        #       Configuration:
+        #         ProjectName: !Ref CodeBuildProjectUnitTest
+        #       InputArtifacts:
+        #         - Name: SourceCodeAsZip
+
+        - !If
+          - IsFeatureBranchPipeline
+          - Name: BuildAndDeployFeatureStack
+            Actions:
+              - Name: CodeBuild
+                ActionTypeId:
+                  Category: Build
+                  Owner: AWS
+                  Provider: CodeBuild
+                  Version: "1"
+                Configuration:
+                  ProjectName: !Ref CodeBuildProjectBuildAndDeployFeature
+                InputArtifacts:
+                  - Name: SourceCodeAsZip
+          - !Ref AWS::NoValue
+
+        - !If
+          - IsMainBranchPipeline
+          - Name: BuildAndPackage
+            Actions:
+              - Name: CodeBuild
+                ActionTypeId:
+                  Category: Build
+                  Owner: AWS
+                  Provider: CodeBuild
+                  Version: "1"
+                Configuration:
+                  ProjectName: !Ref CodeBuildProjectBuildAndPackage
+                InputArtifacts:
+                  - Name: SourceCodeAsZip
+                OutputArtifacts:
+                  - Name: BuildArtifactAsZip
+          - !Ref AWS::NoValue
+        
+        - !If
+          - IsMainBranchPipeline
+          - Name: DeployTest
+            Actions:
+              - Name: DeployTest
+                ActionTypeId:
+                  Category: Build
+                  Owner: AWS
+                  Provider: CodeBuild
+                  Version: "1"
+                Configuration:
+                  ProjectName: !Ref CodeBuildProjectDeploy
+                  EnvironmentVariables: !Sub |
+                    [
+                      {"name": "ENV_TEMPLATE", "value": "packaged-test.yaml"},
+                      {"name": "ENV_REGION", "value": "${TestingRegion}"},
+                      {"name": "ENV_STACK_NAME", "value": "${TestingStackName}"},
+                      {"name": "ENV_PIPELINE_EXECUTION_ROLE", "value": "${TestingPipelineExecutionRole}"},
+                      {"name": "ENV_CLOUDFORMATION_EXECUTION_ROLE", "value": "${TestingCloudFormationExecutionRole}"},
+                      {"name": "ENV_BUCKET", "value": "${TestingArtifactBucket}"},
+                      {"name": "ENV_IMAGE_REPOSITORY", "value": "${TestingImageRepository}"}
+                    ]
+                InputArtifacts:
+                  - Name: BuildArtifactAsZip
+                RunOrder: 1
+              # Uncomment the following step for running the integration tests
+              # - Name: IntegrationTest
+              #   ActionTypeId:
+              #     Category: Build
+              #     Owner: AWS
+              #     Provider: CodeBuild
+              #     Version: "1"
+              #   Configuration:
+              #     ProjectName: !Ref CodeBuildProjectIntegrationTest
+              #   InputArtifacts:
+              #     - Name: SourceCodeAsZip
+              #   RunOrder: 2
+          - !Ref AWS::NoValue
+
+        - !If
+          - IsMainBranchPipeline
+          - Name: DeployProd
+            Actions:
+              # uncomment this to have a manual approval step before deployment to production
+              # - Name: ManualApproval
+              #   ActionTypeId:
+              #    Category: Approval
+              #    Owner: AWS
+              #    Provider: Manual
+              #    Version: "1"
+              #   RunOrder: 1
+              - Name: DeployProd
+                ActionTypeId:
+                  Category: Build
+                  Owner: AWS
+                  Provider: CodeBuild
+                  Version: "1"
+                RunOrder: 2 # keeping run order as 2 in case manual approval is enabled
+                Configuration:
+                  ProjectName: !Ref CodeBuildProjectDeploy
+                  EnvironmentVariables: !Sub |
+                    [
+                      {"name": "ENV_TEMPLATE", "value": "packaged-prod.yaml"},
+                      {"name": "ENV_REGION", "value": "${ProdRegion}"},
+                      {"name": "ENV_STACK_NAME", "value": "${ProdStackName}"},
+                      {"name": "ENV_PIPELINE_EXECUTION_ROLE", "value": "${ProdPipelineExecutionRole}"},
+                      {"name": "ENV_CLOUDFORMATION_EXECUTION_ROLE", "value": "${ProdCloudFormationExecutionExeRole}"},
+                      {"name": "ENV_BUCKET", "value": "${ProdArtifactBucket}"},
+                      {"name": "ENV_IMAGE_REPOSITORY", "value": "${ProdImageRepository}"}
+                    ]
+                InputArtifacts:
+                  - Name: BuildArtifactAsZip
+          - !Ref AWS::NoValue
+
+  PipelineArtifactsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+      LoggingConfiguration:
+        DestinationBucketName:
+          !Ref PipelineArtifactsLoggingBucket
+        LogFilePrefix: "artifacts-logs"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+  
+  PipelineArtifactsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PipelineArtifactsBucket
+      PolicyDocument:
+        Statement:
+          - Effect: "Deny"
+            Action: "s3:*"
+            Principal: "*"
+            Resource:
+              - !Sub  "${PipelineArtifactsBucket.Arn}/*"
+              - !GetAtt PipelineArtifactsBucket.Arn
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+          - Action:
+              - s3:*
+            Effect: Allow
+            Resource:
+              - !Sub arn:aws:s3:::${PipelineArtifactsBucket}
+              - !Sub arn:aws:s3:::${PipelineArtifactsBucket}/*
+            Principal:
+              AWS:
+                - !GetAtt CodePipelineExecutionRole.Arn
+
+  PipelineArtifactsLoggingBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      AccessControl: "LogDeliveryWrite"
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  PipelineArtifactsLoggingBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PipelineArtifactsLoggingBucket
+      PolicyDocument:
+        Statement:
+          - Effect: "Deny"
+            Action: "s3:*"
+            Principal: "*"
+            Resource:
+              - !Sub "${PipelineArtifactsLoggingBucket.Arn}/*"
+              - !GetAtt PipelineArtifactsLoggingBucket.Arn
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+
+  CodePipelineExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - "sts:AssumeRole"
+            Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+      Policies:
+        - PolicyName: CodePipelineAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "iam:PassRole"
+                Resource: "*"
+        - PolicyName: CodeStarConnectionAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "codestar-connections:UseConnection"
+                Resource: !If [CreateConnection, !Ref CodeStarConnection, !Ref CodeStarConnectionArn]
+        - PolicyName: CodePipelineCodeAndS3Bucket
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Action:
+                  - s3:GetBucketAcl
+                  - s3:GetBucketLocation
+                Effect: Allow
+                Resource:
+                  Fn::GetAtt:
+                    - PipelineArtifactsBucket
+                    - Arn
+              - Action:
+                  - "s3:GetObject"
+                  - "s3:GetObjectVersion"
+                  - "s3:PutObject"
+                Effect: Allow
+                Resource:
+                  Fn::Sub: ${PipelineArtifactsBucket.Arn}/*
+
+        - PolicyName: CodePipelineCodeBuildAndCloudformationAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "codebuild:StartBuild"
+                  - "codebuild:BatchGetBuilds"
+                Resource:
+                  # Uncomment the line below to enable the unit-tests
+                  # - !GetAtt CodeBuildProjectUnitTest.Arn
+                  - !If
+                    - IsFeatureBranchPipeline
+                    - !GetAtt CodeBuildProjectBuildAndDeployFeature.Arn
+                    - !Ref AWS::NoValue
+                  - !If
+                    - IsMainBranchPipeline
+                    - !GetAtt CodeBuildProjectBuildAndPackage.Arn
+                    - !Ref AWS::NoValue
+                  # Uncomment the following step for running the integration tests
+                  # - !If
+                  #   - IsMainBranchPipeline
+                  #   - !GetAtt CodeBuildProjectIntegrationTest.Arn
+                  #   - !Ref AWS::NoValue
+                  - !If
+                    - IsMainBranchPipeline
+                    - !GetAtt CodeBuildProjectDeploy.Arn
+                    - !Ref AWS::NoValue
+              - Effect: Allow
+                Action:
+                  - "cloudformation:CreateStack"
+                  - "cloudformation:DescribeStacks"
+                  - "cloudformation:DeleteStack"
+                  - "cloudformation:UpdateStack"
+                  - "cloudformation:CreateChangeSet"
+                  - "cloudformation:ExecuteChangeSet"
+                  - "cloudformation:DeleteChangeSet"
+                  - "cloudformation:DescribeChangeSet"
+                  - "cloudformation:SetStackPolicy"
+                  - "cloudformation:SetStackPolicy"
+                  - "cloudformation:ValidateTemplate"
+                Resource:
+                  - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}/*"
+
+  # PipelineStackCloudFormationExecutionRole is used for the pipeline to self mutate
+  PipelineStackCloudFormationExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Action: "sts:AssumeRole"
+          Effect: Allow
+          Principal:
+            Service: cloudformation.amazonaws.com
+      Policies:
+        - PolicyName: GrantCloudFormationFullAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: '*'
+                Resource: '*'
+  
+  #   ____          _      ____        _ _     _ 
+  #  / ___|___   __| | ___| __ ) _   _(_| | __| |
+  # | |   / _ \ / _` |/ _ |  _ \| | | | | |/ _` |
+  # | |__| (_) | (_| |  __| |_) | |_| | | | (_| |
+  #  \____\___/ \__,_|\___|____/ \__,_|_|_|\__,_|
+  CodeBuildServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Tags:
+        - Key: Role
+          Value: aws-sam-pipeline-codebuild-service-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - "sts:AssumeRole"
+            Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+      Policies:
+        - PolicyName: CodeBuildLogs
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource:
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*"
+        - PolicyName: CodeBuildArtifactsBucket
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "s3:GetObject"
+                  - "s3:GetObjectVersion"
+                  - "s3:PutObject"
+                Resource:
+                  - !Sub "arn:aws:s3:::${PipelineArtifactsBucket}/*"
+        - PolicyName: AssumeStagePipExecutionRoles
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Action:
+                  - sts:AssumeRole
+                Effect: Allow
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    aws:ResourceTag/Role: pipeline-execution-role
+
+  # Uncomment and modify the following step for running the unit-tests
+  # CodeBuildProjectUnitTest:
+  #   Type: AWS::CodeBuild::Project
+  #   Properties:
+  #     Artifacts:
+  #       Type: CODEPIPELINE
+  #     Environment:
+  #       Type: LINUX_CONTAINER
+  #       ComputeType: BUILD_GENERAL1_SMALL
+  #       Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+  #     ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+  #     Source:
+  #       Type: CODEPIPELINE
+  #       BuildSpec: pipeline/buildspec_unit_test.yml
+
+  CodeBuildProjectBuildAndDeployFeature:
+    Condition: IsFeatureBranchPipeline
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        PrivilegedMode: true
+        EnvironmentVariables:
+          - Name: SAM_TEMPLATE
+            Value: !Ref SamTemplate
+          - Name: TESTING_REGION
+            Value: !Ref TestingRegion
+          - Name: TESTING_PIPELINE_EXECUTION_ROLE
+            Value: !Ref TestingPipelineExecutionRole
+          - Name: TESTING_CLOUDFORMATION_EXECUTION_ROLE
+            Value: !Ref TestingCloudFormationExecutionRole
+          - Name: TESTING_ARTIFACT_BUCKET
+            Value: !Ref TestingArtifactBucket
+          - Name: TESTING_IMAGE_REPOSITORY
+            Value: !Ref TestingImageRepository
+          - Name: FEATURE_BRANCH_NAME
+            Value: !Ref FeatureGitBranch
+      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: pipeline/buildspec_feature.yml
+
+  CodeBuildProjectBuildAndPackage:
+    Condition: IsMainBranchPipeline
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        PrivilegedMode: true
+        EnvironmentVariables:
+          - Name: SAM_TEMPLATE
+            Value: !Ref SamTemplate
+          - Name: TESTING_REGION
+            Value: !Ref TestingRegion
+          - Name: PROD_REGION
+            Value: !Ref ProdRegion
+          - Name: TESTING_PIPELINE_EXECUTION_ROLE
+            Value: !Ref TestingPipelineExecutionRole
+          - Name: PROD_PIPELINE_EXECUTION_ROLE
+            Value: !Ref ProdPipelineExecutionRole
+          - Name: TESTING_ARTIFACT_BUCKET
+            Value: !Ref TestingArtifactBucket
+          - Name: PROD_ARTIFACT_BUCKET
+            Value: !Ref ProdArtifactBucket
+          - Name: TESTING_IMAGE_REPOSITORY
+            Value: !Ref TestingImageRepository
+          - Name: PROD_IMAGE_REPOSITORY
+            Value: !Ref ProdImageRepository
+      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: pipeline/buildspec_build_package.yml
+
+  # Uncomment and modify the following step for running the integration tests
+  # CodeBuildProjectIntegrationTest:
+  #   Condition: IsMainBranchPipeline
+  #   Type: AWS::CodeBuild::Project
+  #   Properties:
+  #     Artifacts:
+  #       Type: CODEPIPELINE
+  #     Environment:
+  #       Type: LINUX_CONTAINER
+  #       ComputeType: BUILD_GENERAL1_SMALL
+  #       Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+  #     ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+  #     Source:
+  #       Type: CODEPIPELINE
+  #       BuildSpec: pipeline/buildspec_integration_test.yml
+
+  CodeBuildProjectDeploy:
+    Condition: IsMainBranchPipeline
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: pipeline/buildspec_deploy.yml
+Outputs:
+  CodeStarConnectionArn:
+    Condition: CreateConnection
+    Description: The Arn of AWS CodeStar Connection used to connect to external code repositories.
+    Value: !Ref CodeStarConnection
