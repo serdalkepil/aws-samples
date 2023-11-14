@@ -1,0 +1,8 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  backend:
+    serviceName: {{ .Release.Name }}
+    servicePort: {{ .Values.service.port }}
