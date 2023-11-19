@@ -1,0 +1,39 @@
+Parameters:
+  Stage:
+    Type: String
+    Default: dev
+    Description: Select your stage for deployment
+    AllowedValues:
+        - dev
+        - test
+        - qa
+        - prod
+	
+Resources:	
+  WebAppS3Bucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+        BucketName: !Sub web-app-${Stage}-bucket
+        VersioningConfiguration: 
+            Status: Enabled
+        PublicAccessBlockConfiguration: 
+            BlockPublicAcls: true
+            BlockPublicPolicy: true
+            IgnorePublicAcls: true
+            RestrictPublicBuckets: true
+        LifecycleConfiguration:
+          Rules:
+            - Id: WebTempFilesDeletionPolicy
+              Prefix: temp/
+              Status: Enabled
+              ExpirationInDays: 30
+				  
+Outputs:
+
+  S3BucketArn:
+    Description: Arn of the web app s3 bucket
+    Value: !GetAtt WebAppS3Bucket.Arn
+    Export:
+      Name: WebAppS3BucketArn

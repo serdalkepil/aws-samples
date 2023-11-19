@@ -4,11 +4,13 @@ Parameters:
   AmazonLinuxAMIID:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+
   MyIP:
     Type: String
     Description: My IP address e.g. 1.2.3.4/32 for Security Group HTTP access rule. Get your IP from http://checkip.amazonaws.com/.
     AllowedPattern: (\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/32
     ConstraintDescription: must be a valid IP address of the form x.x.x.x/32
+
   WebServerInstanceType:
     Type: String
     Default: t2.micro
@@ -18,6 +20,7 @@ Parameters:
         - t3.small
         - a1.xlarge
         - m5.large
+        
   KeyName:
     Description: Name of SSH KeyPair
     Type: 'AWS::EC2::KeyPair::KeyName'
@@ -112,7 +115,7 @@ Resources:
         IpProtocol: tcp
         FromPort: '80'
         ToPort: '80'
-        CidrIp: 0.0.0.0/0
+        CidrIp: !Ref MyIP
       SecurityGroupEgress:
       - Description: Allow all traffic egress
         IpProtocol: -1
