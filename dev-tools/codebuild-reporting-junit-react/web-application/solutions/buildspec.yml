@@ -1,0 +1,34 @@
+version: 0.2
+env:
+  variables:
+    CI: true
+phases:
+  install:
+    runtime-versions:
+      nodejs: 12
+    commands:
+      - cd react-app
+      - npm install --silent
+  build:
+    commands:
+      - npm run test:ci -- --coverage
+      - npm run build
+artifacts:
+  files:
+    - '**/*'
+  base-directory: react-app/build
+reports:
+  web-application:
+    files:
+      - "clover.xml"
+    base-directory: 'react-app/coverage'
+    discard-paths: yes
+    file-format: CLOVERXML
+  web-application-tests:
+    files:
+      - "junit.xml"
+    base-directory: 'react-app'
+    discard-paths: yes
+    file-format: JUNITXML
+
+

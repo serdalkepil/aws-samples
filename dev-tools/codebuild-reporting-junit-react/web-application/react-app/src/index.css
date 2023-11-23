@@ -1,0 +1,18 @@
+header {
+  background: #516270;
+  color: #e9ecef;
+}
+header > .container {
+  padding: 20px;
+}
+section {
+  background: #e9ecef;
+}
+section > .container{
+  background: #fff;
+  padding: 20px;
+}
+footer{
+  background: #516270;
+  color: #e9ecef;
+}

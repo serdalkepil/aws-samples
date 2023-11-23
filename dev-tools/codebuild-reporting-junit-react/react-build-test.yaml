@@ -1,0 +1,299 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'Automate Application Testing using AWS CodeBuild'
+
+# aws cloudformation create-stack --region eu-west-1 --stack-name react-build-test --capabilities CAPABILITY_NAMED_IAM --template-body file://./react-build-test.yaml
+
+Parameters:
+  webAppCode:
+    Type: String
+    Default: reactbuild/web-application.zip
+
+  webAppCodeBucket:
+    Type: String
+    Default: cloudair123
+
+Resources:
+  ##Network Resources
+  vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.100.0.0/21
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: Lab-vpc
+  pubSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      MapPublicIpOnLaunch: true
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: !Ref 'AWS::Region'
+      VpcId: !Ref vpc
+      CidrBlock: 10.100.0.0/24
+      Tags:
+        - Key: Name
+          Value: Lab-Pub-a
+  igw:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: Lab-igw
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref vpc
+      InternetGatewayId: !Ref igw
+  pubRt:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref vpc
+      Tags:
+        - Key: Name
+          Value: Lab-public-RT
+  pubRtAssocA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref pubSubnetA
+      RouteTableId: !Ref pubRt
+  igwRoute:
+    DependsOn:
+      - AttachGateway
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref pubRt
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref igw
+
+
+  ##IAM Resources
+  codePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: codePipelineRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: "lab-CP-Policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Action:
+                  - codecommit:CancelUploadArchive
+                  - codecommit:GetBranch
+                  - codecommit:GetCommit
+                  - codecommit:GetRepository
+                  - codecommit:GetUploadArchiveStatus
+                  - codecommit:UploadArchive
+                Resource: "*"
+                Effect: Allow
+              - Action:
+                  - cloudwatch:*
+                  - s3:*
+                  - sns:*
+                  - codebuild:*Get*
+                  - codebuild:List*
+                  - codebuild:StartBuild
+                  - codebuild:RetryBuild
+                  - codebuild:StopBuild
+                Resource: "*"
+                Effect: Allow
+              - Action:
+                  - lambda:InvokeFunction
+                  - lambda:ListFunctions
+                Resource: "*"
+                Effect: Allow
+              - Action:
+                  - states:DescribeExecution
+                  - states:DescribeStateMachine
+                  - states:StartExecution
+                Resource: "*"
+                Effect: Allow
+
+  codeBuildServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: codeBuildRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+              - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+      Policies:
+        - PolicyName: lab-CB-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - codebuild:*Report*
+                  - codebuild:BatchPutCodeCoverages
+                  - codebuild:BatchPutTestCases
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - s3:*
+                Resource:
+                  - !GetAtt artifactStore.Arn
+                  - !Sub ${artifactStore.Arn}/*
+
+  ##Lab resources
+  webApplicationRepo:
+    Type: AWS::CodeCommit::Repository
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - E3002
+    Properties:
+      RepositoryDescription: Tic-Tac-Toe react application.
+      RepositoryName: web-application
+      Code:
+        BranchName: dev
+        S3:
+          Bucket: !Ref webAppCodeBucket
+          Key: !Ref webAppCode
+
+  webApplicationPipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: web-application-pipeline
+      RoleArn: !GetAtt codePipelineRole.Arn
+      ArtifactStore:
+        Type: S3
+        Location: !Ref artifactStore
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: webInfrastructureRepo
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeCommit
+                Version: '1'
+              Configuration:
+                RepositoryName: !GetAtt webApplicationRepo.Name
+                BranchName: dev
+                PollForSourceChanges: 'false'
+              RunOrder: 1
+              OutputArtifacts:
+                - Name: sourceArtifact
+        - Name: Build
+          Actions:
+            - Name: build-and-test
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: '1'
+              Configuration:
+                ProjectName: !Ref buildProject
+              InputArtifacts:
+                - Name: sourceArtifact
+              OutputArtifacts:
+                - Name: buildArtifact
+              RunOrder: 1
+        - Name: Deploy
+          Actions:
+            - Name: PublishToS3
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: S3
+                Version: '1'
+              Configuration:
+                BucketName: !Ref artifactStore
+                ObjectKey: staging/web-application.zip
+                Extract: false
+              InputArtifacts:
+                - Name: buildArtifact
+              Namespace: production
+              RunOrder: 1
+
+  buildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      ConcurrentBuildLimit: 1
+      TimeoutInMinutes: 5
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        Type: LINUX_CONTAINER
+      ServiceRole: !GetAtt codeBuildServiceRole.Arn
+      Source:
+        Type: CODEPIPELINE
+
+  artifactStore:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+
+  AmazonCloudWatchEventRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: cwe-pipeline-execution
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: codepipeline:StartPipelineExecution
+                Resource: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${webApplicationPipeline}
+
+  AmazonCloudWatchEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventPattern:
+        source:
+          - aws.codecommit
+        detail-type:
+          - 'CodeCommit Repository State Change'
+        resources:
+          - !GetAtt webApplicationRepo.Arn
+        detail:
+          event:
+            - referenceCreated
+            - referenceUpdated
+          referenceType:
+            - branch
+          referenceName:
+            - dev
+      Targets:
+        - Arn: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${webApplicationPipeline}
+          RoleArn: !GetAtt AmazonCloudWatchEventRole.Arn
+          Id: codepipeline-AppPipeline
+
+
+Outputs:
+  LabRegion:
+    Description: Primary Region used in the lab
+    Value: !Ref AWS::Region
