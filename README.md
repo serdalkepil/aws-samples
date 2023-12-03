@@ -1,7 +1,8 @@
-# aws-samples
-you can find some examples about AWS Development and AWS SDK's usage in this repository. 
+# AWS Samples Repo by Serdal Kepil
 
-## CloudAir Application 
+You can find examples about AWS Services usage and development sample scenarios in this repository. 
+
+
 ## AWS SDK Usage Examples
 ## CloudFormation Templates
 ## AWS Lambda Functions
