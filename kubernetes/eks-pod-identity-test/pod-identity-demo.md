@@ -126,3 +126,14 @@ export AWS_SECRET_ACCESS_KEY=Kmfg...
 export AWS_SESSION_TOKEN="IQoJb3..." 
 aws sts get-caller-identity
 ```
+
+## Delete Created Resources
+
+Delete created resources and addon
+
+```sh
+kubectl delete deployment pod-identity
+aws eks delete-pod-identity-association --cluster-name eks-cluster --association-id a-kvbxt9pyavos3iwxy
+kubectl delete sa pod-identity
+aws eks delete-addon --cluster-name eks-cluster --addon-name eks-pod-identity-agent
+```
