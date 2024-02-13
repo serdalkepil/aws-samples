@@ -191,46 +191,6 @@ Resources:
         - Key: 'role'
           Value: 'webserver'
 
-  WebAppS3Bucket:
-    Type: AWS::S3::Bucket
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
-    Properties:
-        BucketName: !Sub web-app-${Stage}-bucket-3234234
-        VersioningConfiguration: 
-            Status: Enabled
-        PublicAccessBlockConfiguration: 
-            BlockPublicAcls: true
-            BlockPublicPolicy: true
-            IgnorePublicAcls: true
-            RestrictPublicBuckets: true
-        LifecycleConfiguration:
-          Rules:
-            - Id: WebTempFilesDeletionPolicy
-              Prefix: temp/
-              Status: Enabled
-              ExpirationInDays: 30
-
-  WebAppS3Bucket:
-    Type: AWS::S3::Bucket
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
-    Properties:
-        BucketName: !Sub web-app-${Stage}-bucket
-        VersioningConfiguration: 
-            Status: Enabled
-        PublicAccessBlockConfiguration: 
-            BlockPublicAcls: true
-            BlockPublicPolicy: true
-            IgnorePublicAcls: true
-            RestrictPublicBuckets: true
-        LifecycleConfiguration:
-          Rules:
-            - Id: WebTempFilesDeletionPolicy
-              Prefix: temp/
-              Status: Enabled
-              ExpirationInDays: 30
-
 Outputs:
   URL:
     Value:

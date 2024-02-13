@@ -8,7 +8,7 @@ Parameters:
         - test
         - qa
         - prod
-	
+
 Resources:	
   WebAppS3Bucket:
     Type: AWS::S3::Bucket
@@ -29,7 +29,7 @@ Resources:
               Prefix: temp/
               Status: Enabled
               ExpirationInDays: 30
-				  
+
 Outputs:
 
   S3BucketArn:
