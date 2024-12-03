@@ -1,0 +1,3 @@
+{
+  "app": "npx tsx bin/demo-aws-cdk.ts"
+}

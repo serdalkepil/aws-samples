@@ -49,7 +49,6 @@ export class CdkStarterStack extends cdk.Stack {
       machineImage: new ec2.AmazonLinuxImage({
         generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
       }),
-      keyName: 'ec2-key-pair',
     });
 
     // 👇 create RDS Instance
@@ -68,10 +67,10 @@ export class CdkStarterStack extends cdk.Stack {
       credentials: rds.Credentials.fromGeneratedSecret('postgres'),
       multiAz: false,
       allocatedStorage: 100,
-      maxAllocatedStorage: 105,
+      maxAllocatedStorage: 110,
       allowMajorVersionUpgrade: false,
       autoMinorVersionUpgrade: true,
-      backupRetention: cdk.Duration.days(0),
+      backupRetention: cdk.Duration.days(1),
       deleteAutomatedBackups: true,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       deletionProtection: false,
