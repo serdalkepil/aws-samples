@@ -1,0 +1,111 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Multi-Environment URL Health Check Lambda Function
+
+Parameters:
+  Environment:
+    Type: String
+    Default: test
+    AllowedValues:
+      - test
+      - prod
+    Description: Deployment environment
+
+  LogLevel:
+    Type: String
+    Default: INFO
+    AllowedValues:
+      - DEBUG
+      - INFO
+      - WARNING
+      - ERROR
+    Description: Logging level for the Lambda function
+
+  UrlsToCheck:
+    Type: String
+    Description: JSON array of URLs to check
+    Default: '["https://google.com", "https://www.wikipedia.org/"]'
+
+  AlertEmailAddress:
+    Type: String
+    Description: Email address for alerts
+    Default: 'serdalkepil@gmail.com'
+
+  LogRetentionInDays:
+    Type: Number
+    Default: 60
+    Description: Number of days to retain CloudWatch logs
+
+Mappings:
+  EnvironmentConfig:
+    test:
+      MemorySize: 128
+      Timeout: 59
+      Schedule: rate(5 minutes)
+    prod:
+      MemorySize: 128
+      Timeout: 59
+      Schedule: rate(1 minute)
+
+Conditions:
+  IsProdEnvironment: !Equals [!Ref Environment, "prod"]
+
+Resources:
+  UrlHealthCheckLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/url-health-check-${Environment}
+      RetentionInDays: !Ref LogRetentionInDays
+
+  # SNS Topic for Alerts
+  UrlHealthCheckAlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub url-health-check-alerts-${Environment}
+      DisplayName: !Sub URL Health Check Alerts (${Environment})
+
+  # Optional: SNS Topic Subscription (Email)
+  UrlHealthCheckEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: IsProdEnvironment
+    Properties:
+      TopicArn: !Ref UrlHealthCheckAlertTopic
+      Protocol: email
+      Endpoint: !Ref AlertEmailAddress
+
+  # Lambda Function
+  UrlHealthCheckFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub url-health-check-${Environment}
+      CodeUri: src/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      MemorySize: !FindInMap [EnvironmentConfig, !Ref Environment, MemorySize]
+      Timeout: !FindInMap [EnvironmentConfig, !Ref Environment, Timeout]
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+          LOG_LEVEL: !Ref LogLevel
+          URLS_TO_CHECK: !Ref UrlsToCheck
+          SNS_TOPIC_ARN: !Ref UrlHealthCheckAlertTopic
+      Policies:
+        - CloudWatchLogsFullAccess
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt UrlHealthCheckAlertTopic.TopicName
+      Events:
+        ScheduledCheck:
+          Type: Schedule
+          Properties:
+            Schedule: !FindInMap [EnvironmentConfig, !Ref Environment, Schedule]
+      LoggingConfig:
+        LogGroup: !Ref UrlHealthCheckLogGroup
+
+Outputs:
+  UrlHealthCheckTopicArn:
+    Description: ARN of the URL Health Check SNS Topic
+    Value: !Ref UrlHealthCheckAlertTopic
+
+  UrlHealthCheckFunctionName:
+    Description: Name of the URL Health Check Lambda Function
+    Value: !Ref UrlHealthCheckFunction
