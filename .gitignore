@@ -93,3 +93,5 @@ cdk.context.json
 
 */*/node_modules/
 */*/*/node_modules/*/*
+*/.aws-sam
+*/samconfig.toml
