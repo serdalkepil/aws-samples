@@ -3,6 +3,8 @@ kind: Ingress
 metadata:
   name: {{ .Release.Name }}
 spec:
-  backend:
-    serviceName: {{ .Release.Name }}
-    servicePort: {{ .Values.service.port }}
+  defaultBackend:
+    service:
+      name: {{ .Release.Name }}
+      port:
+        number: {{ .Values.service.port }}

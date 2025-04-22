@@ -82,6 +82,28 @@ This guide will walk you through setting up Amazon EKS (Elastic Kubernetes Servi
    eksctl version
    ```
 
+### Set up ECR and Build & Push the Image
+
+Make sure that you have the latest version of the AWS CLI and Docker installed. For more information, see Getting Started with Amazon ECR. Use the following steps to authenticate and push an image to your repository. For additional registry authentication methods, including the Amazon ECR credential helper, see Registry Authentication .
+
+Retrieve an authentication token and authenticate your Docker client to your registry. Use the AWS CLI:
+
+```bash
+aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin 029916934188.dkr.ecr.eu-west-1.amazonaws.com
+```
+
+Note: If you receive an error using the AWS CLI, make sure that you have the latest version of the AWS CLI and Docker installed.
+
+Build your Docker image using the following command. For information on building a Docker file from scratch see the instructions here. You can skip this step if your image is already built. 
+After the build completes, tag your image so you can push the image to this repository:
+Run the following commands to build and push this image to your newly created AWS repository:
+
+```bash
+docker build -t nodejs-simple-app .
+docker tag nodejs-simple-app:latest 029916934188.dkr.ecr.eu-west-1.amazonaws.com/nodejs-simple-app:latest
+docker push 029916934188.dkr.ecr.eu-west-1.amazonaws.com/nodejs-simple-app:latest
+```
+
 ## Step 2: Create an Amazon EKS Cluster
 
 You can create an EKS cluster using the AWS Management Console or eksctl.
@@ -195,30 +217,81 @@ Let's deploy a sample Nginx application using Helm:
 
 Let's deploy a more complex application using an existing Helm chart from a repository:
 
-1. Add the Bitnami repository:
+FluentBit
+
    ```bash
-   helm repo add bitnami https://charts.bitnami.com/bitnami
+      helm version
+      helm repo list
+
+      # aws eks team public repo
+      helm repo add eks https://aws.github.io/eks-charts
+
+      # find the package
+      helm search repo eks fluent
+
+      # install the fluent-bit
+      helm install aws-for-fluent-bit --namespace kube-system eks/aws-for-fluent-bit
+
+      # check pods
+      kubectl get pods -n kube-system
+
+      # helm check
+      helm ls --namespace kube-system
+
+      # check daemonset
+      kubectl get daemonset -n kube-system
+
+      # upgrade the deployment
+      helm upgrade aws-for-fluent-bit -n kube-system eks/aws-for-fluent-bit 
+
+      # rollback with dry-run
+      helm rollback aws-for-fluent-bit 1 -n kube-system --dry-run 
+
+      # rollback without dry-run
+      helm rollback aws-for-fluent-bit 1 -n kube-system
    ```
 
-2. Update repositories:
-   ```bash
-   helm repo update
-   ```
+Custom App
 
-3. Install WordPress from Bitnami:
-   ```bash
-   helm install my-wordpress bitnami/wordpress
-   ```
+```bash
 
-4. Check the deployment status:
-   ```bash
-   kubectl get pods
-   ```
+cd eks-helm-nodejs-app/
+mkdir myapp
+cd my-app
 
-5. Get the WordPress URL:
-   ```bash
-   kubectl get svc --namespace default my-wordpress
-   ```
+# check the files and delete templates folder content 
+helm create my-app
+rm -rf *
+
+# under my-app directory, try to install my-app chart
+helm install --debug --dry-run myreleasedapp .
+
+# open templates/deployment.yaml
+# change name value with the release name placeholder -  name: {{ .Release.Name }}
+# after the error try with a different option 
+helm install --debug --dry-run myreleasedapp2 .
+
+helm install --debug --dry-run myreleasedapp .
+
+helm install myreleasedapp .
+
+kubectl get deploy
+
+helm ls
+
+helm upgrade myreleasedapp .
+
+helm rollback myreleasedapp 1 
+
+# update version from chart.yaml
+
+helm upgrade myreleasedapp .
+
+helm ls
+
+helm delete myreleasedapp
+
+```
 
 ## Step 7: Manage Your Helm Releases
 
