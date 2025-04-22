@@ -95,3 +95,5 @@ cdk.context.json
 */*/*/node_modules/*/*
 */.aws-sam
 */samconfig.toml
+sdk/.DS_Store
+.DS_Store
