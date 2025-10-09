@@ -1,5 +1,3 @@
-I'll help you create a comprehensive demo for fine-tuning basic text prompts with Amazon Bedrock. Here's a complete guide with examples and best practices:
-
 ## 1. Basic Text Prompt Structure
 
 ### Simple Completion Prompt
