@@ -1,7 +1,7 @@
 import boto3
 import json
 
-def invoke_bedrock_model(prompt, model_id="anthropic.claude-3-sonnet-20240229-v1:0"):
+def invoke_bedrock_model(prompt, model_id="qwen.qwen3-coder-30b-a3b-v1:0"):
     """Invoke Amazon Bedrock model with a text prompt"""
     bedrock = boto3.client('bedrock-runtime')
     
