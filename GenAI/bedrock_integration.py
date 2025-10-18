@@ -8,6 +8,8 @@ def invoke_bedrock_model(prompt, model_id="anthropic.claude-3-sonnet-20240229-v1
     body = json.dumps({
         "anthropic_version": "bedrock-2023-05-31",
         "max_tokens": 1000,
+        "temperature": 0.3,
+        "top_p": 0.9,
         "messages": [{"role": "user", "content": prompt}]
     })
     
