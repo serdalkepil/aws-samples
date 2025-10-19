@@ -51,13 +51,20 @@ Comprehensive collection of AWS examples, tutorials, and best practices for clou
 ### 🤖 AI/ML & GenAI
 
 #### [GenAI](./GenAI/)
-- **[bedrock_integration.py](./GenAI/bedrock_integration.py)** - Amazon Bedrock integration
-- **[langchain_bedrock_integration.py](./GenAI/langchain_bedrock_integration.py)** - LangChain with Bedrock
-- **[langchain_agent_bedrock.py](./GenAI/langchain_agent_bedrock.py)** - LangChain Agent with tools
-- **[Vector Database](./GenAI/vector_db.md)** - Vector storage and retrieval
-- **[S3 Vectors Tutorial](./GenAI/s3-vectors-tutorial.md)** - Complete S3 Vectors guide
-- **[Prompt Engineering](./GenAI/bedrock_prompt_engineering.md)** - Best practices guide
-- S3 vector operations and querying
+- **[bedrock](./GenAI/bedrock/)** - Amazon Bedrock integration and setup
+  - Basic Bedrock integration examples
+  - Prompt engineering best practices
+  - UI demo setup guide
+- **[bedrock-embedding-s3-vector](./GenAI/bedrock-embedding-s3-vector/)** - Vector embeddings with S3
+  - Vector insertion and querying
+  - S3 Vectors tutorial and documentation
+  - Complete vector database examples
+- **[langchain](./GenAI/langchain/)** - LangChain integrations
+  - Bedrock integration with LangChain
+  - Chain and prompt templates
+- **[langchain-agent](./GenAI/langchain-agent/)** - LangChain Agent with tools
+  - Multi-tool agent implementation
+  - Calculator, weather, and AWS service tools
 
 ### 🔐 Security & Identity
 
