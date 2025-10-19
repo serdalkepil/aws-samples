@@ -127,7 +127,7 @@ cd sam/apigtw-lambda-dynamodb-crud && sam build
 - **Serverless Computing**: Lambda, API Gateway, DynamoDB
 - **Container Orchestration**: EKS, Kubernetes, Helm
 - **Storage Solutions**: S3, EBS, EFS
-- **AI/ML Services**: Bedrock, Rekognition
+- **AI/ML Services**: Bedrock, Rekognition, LangChain
 - **Security**: IAM, STS, Secrets Manager
 - **DevOps**: CodePipeline, CodeBuild, CodeDeploy
 - **Monitoring**: CloudWatch, X-Ray
