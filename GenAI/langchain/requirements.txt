@@ -1,0 +1,3 @@
+langchain-aws
+langchain-core
+boto3

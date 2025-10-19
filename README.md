@@ -52,6 +52,7 @@ Comprehensive collection of AWS examples, tutorials, and best practices for clou
 
 #### [GenAI](./GenAI/)
 - **[bedrock_integration.py](./GenAI/bedrock_integration.py)** - Amazon Bedrock integration
+- **[langchain_bedrock_integration.py](./GenAI/langchain_bedrock_integration.py)** - LangChain with Bedrock
 - **[Vector Database](./GenAI/vector_db.md)** - Vector storage and retrieval
 - **[Prompt Engineering](./GenAI/bedrock_prompt_engineering.md)** - Best practices guide
 - S3 vector operations and querying
