@@ -157,6 +157,7 @@
   - [What are AWS Cost and Usage Reports?](https://www.google.com/search?q=https://docs.aws.amazon.com/cur/latest/userguide/what-are-cur.html)
   - [What is AWS Compute Optimizer?](https://docs.aws.amazon.com/compute-optimizer/latest/ug/what-is-compute-optimizer.html)
   - [Savings Plans Documentation](https://docs.aws.amazon.com/savingsplans/latest/userguide/what-is-savings-plans.html)
+  - [Cloud Financial Management with AWS](https://aws.amazon.com/aws-cost-management/)
 
 ### Module 15
 
@@ -165,6 +166,9 @@
   - [How AWS Pricing Works Whitepaper](https://docs.aws.amazon.com/whitepapers/latest/how-aws-pricing-works/abstract-and-introduction.html)
   - [AWS Certification - Validate AWS Cloud Skills](https://aws.amazon.com/certification/)
   - [AWS Training and Certification](https://aws.amazon.com/training/)
+  - [AWS SkillBuilder - Online Learning Platform](https://skillbuilder.aws/)
+  - [AWS Ramp-Up Guides](https://aws.amazon.com/training/ramp-up-guides/)
+
 
 
 
