@@ -71,12 +71,100 @@
 
 ### Module 7
 
+- [Elastic Load Balancer Documentation - AWS](https://aws.amazon.com/documentation-overview/elasticloadbalancing/)
+
+- [Amazon Route 53 Documentation](https://aws.amazon.com/documentation-overview/route53/)
+
+- [Failover routing - Amazon Route 53 - AWS Documentation](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-policy-failover.html)
+
+- [Routing traffic to an ELB load balancer - Amazon Route 53](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-to-elb-load-balancer.html)
+
+- [What is an Application Load Balancer? - AWS Documentation](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html)
+
+- [Best practices for working with Amazon Route 53 - AWS Documentation](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/best-practices.html)
+
+### Module 8
+
+- [Amazon EC2 Auto Scaling - AWS Documentation](https://docs.aws.amazon.com/autoscaling/ec2/userguide/what-is-amazon-ec2-auto-scaling.html)
+
+- [Target tracking scaling policies for Amazon EC2 Auto Scaling](https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-scaling-target-tracking.html)
+
+- [Step and simple scaling policies for Amazon EC2 Auto Scaling](https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-scaling-simple-step.html)
+
+- [AWS Auto Scaling - AWS Documentation](https://docs.aws.amazon.com/autoscaling/)
+
+- [Predictive scaling for Amazon EC2 Auto Scaling](https://docs.aws.amazon.com/autoscaling/ec2/userguide/predictive-scaling-tutorial.html)
+
+- [What is AWS License Manager? - AWS License Manager - AWS Documentation](https://docs.aws.amazon.com/license-manager/latest/userguide/license-manager.html)
+
+### Module 9
+
+- [Amazon CloudWatch Documentation](https://docs.aws.amazon.com/cloudwatch/)
+
+- [Managing alarms - Amazon CloudWatch - AWS Documentation](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Manage-CloudWatch-Alarm.html)
+
+- [Manually create or edit the CloudWatch agent configuration file - AWS Documentation](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch-Agent-Configuration-File-Details.html)
+
+- [Amazon EventBridge Documentation](https://docs.aws.amazon.com/eventbridge/)
+
+- [What is AWS X-Ray? - AWS X-Ray](https://docs.aws.amazon.com/xray/latest/devguide/aws-xray.html)
+
+- [CloudWatch Metrics Insights query syntax - AWS Documentation](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch-metrics-insights-query-syntax.html)
 
 
+### Module 10
+
+  - [What is AWS Identity and Access Management (IAM)? - User Guide](https://www.google.com/search?q=https://docs.aws.amazon.com/iam/userguide/introduction.html)
+  - [Welcome - IAM Access Analyzer - AWS Documentation](https://docs.aws.amazon.com/access-analyzer/latest/APIReference/Welcome.html)
+  - [What is AWS Config? - AWS Config Documentation](https://aws.amazon.com/documentation-overview/config/)
+  - [AWS Security Hub Documentation - Overview](https://aws.amazon.com/documentation-overview/security-hub/)
+  - [Automating incident response in AWS Security Hub](https://www.google.com/search?q=https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-automation-actions.html)
+  - [Working with Automation runbooks - AWS Systems Manager](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-automation.html)
+
+### Module 11
+
+  - [What is Amazon VPC? - Amazon Virtual Private Cloud](https://docs.aws.amazon.com/vpc/latest/userguide/what-is-amazon-vpc.html)
+  - [Working with VPC Flow Logs - Amazon VPC](https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs.html)
+  - [What is AWS WAF? - Web Application Firewall](https://aws.amazon.com/waf/faqs/)
+  - [Amazon CloudFront Documentation - Overview](https://aws.amazon.com/documentation-overview/cloudfront/)
+  - [What is AWS Certificate Manager (ACM)? - ACM FAQs](https://aws.amazon.com/certificate-manager/faqs/)
+  - [VPC peering concepts - Amazon VPC](https://docs.aws.amazon.com/vpc/latest/peering/what-is-vpc-peering.html)
+
+### Module 12
+
+  - [Amazon EBS Introduction and Concepts - AWS Documentation](https://docs.aws.amazon.com/ebs/latest/userguide/ebs-volumes.html)
+  - [Automate backups with Amazon Data Lifecycle Manager - AWS Documentation](https://docs.aws.amazon.com/ebs/latest/userguide/snapshot-lifecycle.html)
+  - [What is Amazon Elastic File System (EFS)? - AWS Documentation](https://docs.aws.amazon.com/efs/latest/ug/whatisefs.html)
+  - [Managing the lifecycle of file system data - Amazon EFS](https://docs.aws.amazon.com/efs/latest/ug/lifecycle-management-efs.html)
+  - [What is AWS Backup? - AWS Documentation](https://www.google.com/search?q=https://docs.aws.amazon.com/backup/latest/devguide/whatisbackup.html)
+  - [How AWS Backup works with Amazon EBS](https://www.google.com/search?q=https://docs.aws.amazon.com/backup/latest/devguide/backup-ebs.html)
+
+### Module 13
+
+  - [What is Amazon Simple Storage Service (S3)? - AWS Documentation](https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html)
+  - [Using Amazon S3 storage classes - AWS Documentation](https://docs.aws.amazon.com/AmazonS3/latest/userguide/storage-class-intro.html)
+  - [Managing your storage lifecycle - Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lifecycle-mgmt.html)
+  - [Security in Amazon S3 - AWS Documentation](https://docs.aws.amazon.com/AmazonS3/latest/userguide/security.html)
+  - [Blocking public access to your Amazon S3 storage - AWS Documentation](https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html)
+  - [Overview of S3 Versioning - AWS Documentation](https://www.google.com/search?q=https://docs.aws.amazon.com/AmazonS3/latest/userguide/versioning-overview.html)
+  - [Replicating objects - Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/replication.html)
 
 
+### Module 14
 
+  - [What is AWS Cost Explorer? - AWS Cost Management](https://docs.aws.amazon.com/cost-management/latest/userguide/ce-what-is.html)
+  - [What is AWS Budgets? - AWS Cost Management](https://www.google.com/search?q=https://docs.aws.amazon.com/cost-management/latest/userguide/what-is-budgets.html)
+  - [What are AWS Cost and Usage Reports?](https://www.google.com/search?q=https://docs.aws.amazon.com/cur/latest/userguide/what-are-cur.html)
+  - [What is AWS Compute Optimizer?](https://docs.aws.amazon.com/compute-optimizer/latest/ug/what-is-compute-optimizer.html)
+  - [Savings Plans Documentation](https://docs.aws.amazon.com/savingsplans/latest/userguide/what-is-savings-plans.html)
 
+### Module 15
+
+  - [AWS Well-Architected Framework Documentation](https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html)
+  - [Amazon Virtual Private Cloud Connectivity Options Whitepaper](https://docs.aws.amazon.com/whitepapers/latest/aws-vpc-connectivity-options/welcome.html)
+  - [How AWS Pricing Works Whitepaper](https://docs.aws.amazon.com/whitepapers/latest/how-aws-pricing-works/abstract-and-introduction.html)
+  - [AWS Certification - Validate AWS Cloud Skills](https://aws.amazon.com/certification/)
+  - [AWS Training and Certification](https://aws.amazon.com/training/)
 
 
 
