@@ -171,7 +171,11 @@
 
 
 
-
+### Additional Resources about SAM and Lambda
+  - [Sessions with SAM](https://www.youtube.com/playlist?list=PLJo-rJlep0ED198FJnTzhIB5Aut_1vDAd)
+  - [The Complete AWS SAM Workshop](https://catalog.workshops.aws/complete-aws-sam/en-US)
+  - [AWS CDK for Terraform](https://developer.hashicorp.com/terraform/cdktf)
+  - [ AWS SAM application that implements a CRUD API with Lambda handlers written in Java](https://github.com/serdalkepil/aws-samples/tree/main/sam/java-crud-api-with-layer)
 
 
 
