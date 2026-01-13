@@ -86,41 +86,42 @@ Resources:
       LaunchTemplateData:
         ImageId: !Ref LatestArmAmiId
         InstanceType: t4g.micro
-        SecurityGroupIds:
-          - !Ref InstanceSecurityGroup
-        # UserData script to install httpd and create the custom index.html
+        # NETWORK CONFIGURATION CHANGE:
+        NetworkInterfaces: 
+          - DeviceIndex: 0
+            AssociatePublicIpAddress: true
+            Groups: 
+              - !Ref InstanceSecurityGroup
+        # Note: When using NetworkInterfaces, SecurityGroupIds must be moved inside it (as shown above), 
+        # NOT at the LaunchTemplateData root level.
         UserData:
           Fn::Base64: |
             #!/bin/bash
+            # Redirect logs to console for easier debugging
+            exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+            
             dnf update -y
             dnf install -y httpd
             systemctl start httpd
             systemctl enable httpd
             
-            # IMDSv2: Get Token and Metadata
+            # IMDSv2 Token & Metadata
             TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"`
             INSTANCE_ID=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/instance-id)
             AZ=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/placement/availability-zone)
             
-            # Generate Random Hex Color
             COLOR=$(printf "#%06x" $((RANDOM*16777216/32767)))
             
-            # Write HTML
             cat <<EOF > /var/www/html/index.html
             <html>
             <head>
               <title>ASG Demo</title>
-              <style>
-                body { background-color: $COLOR; font-family: sans-serif; text-align: center; padding-top: 50px; }
-                .container { background: white; padding: 20px; border-radius: 10px; display: inline-block; }
-              </style>
+              <style>body { background-color: $COLOR; font-family: sans-serif; text-align: center; padding-top: 50px; }</style>
             </head>
             <body>
-              <div class="container">
-                <h1>CloudFormation ASG Demo</h1>
-                <p><strong>Instance ID:</strong> $INSTANCE_ID</p>
-                <p><strong>Availability Zone:</strong> $AZ</p>
-              </div>
+              <h1>CloudFormation ASG Demo</h1>
+              <p>Instance: $INSTANCE_ID</p>
+              <p>AZ: $AZ</p>
             </body>
             </html>
             EOF
