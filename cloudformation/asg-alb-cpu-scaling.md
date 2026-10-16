@@ -193,9 +193,3 @@ aws cloudformation delete-stack \
 Confirm the load balancer, the target group, the Auto Scaling group, and both security groups are gone. Target-tracking alarms are deleted with the policy.
 
 ---
-
-## Scope, so a sharp student does not derail you
-
-This template is a demo of three ideas: an Application Load Balancer in front of an Auto Scaling group, instance access limited to the load balancer, and target tracking on average CPU.
-
-It deliberately has no HTTPS certificate, no WAF, no ALB access logs, no private subnets, no NAT gateway, no sticky sessions, no request-count scaling policy, no step scaling policy, no scheduled scaling, and no instance refresh. If someone asks, agree those are the production next steps, then return to the diagram.
