@@ -4,6 +4,17 @@ echo "#####################################################################"
 echo "Cloud9 k8s Tools Installation Script for Amazon Linux 2023 #########"
 echo "############################################ by #Serdal Kepil########"
 
+# Works both as EC2 user data (cloud-init runs it as root, often with no HOME/USER set)
+# and interactively (bash install-req-AL2023.sh). Output in user data: /var/log/cloud-init-output.log
+export HOME=${HOME:-/root}
+export PATH=/usr/local/bin:/usr/local/sbin:$PATH
+# The user who should run docker without sudo: the sudo caller, else ec2-user, else the current user
+if [ -n "${SUDO_USER:-}" ]; then TARGET_USER=$SUDO_USER
+elif id ec2-user >/dev/null 2>&1; then TARGET_USER=ec2-user
+else TARGET_USER=$(id -un); fi
+# Download into a scratch folder, not whatever directory cloud-init happens to run in
+WORKDIR=$(mktemp -d) && cd "$WORKDIR"
+
 # step 1
 echo "update and install prerequisites ##############################################"
 sudo dnf -y update
@@ -37,7 +48,7 @@ echo "python setup completed ################################################"
 # step 3
 echo "update AWS CLI version to latest ##############################################"
 curl "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o "awscliv2.zip"
-unzip awscliv2.zip
+unzip -q -o awscliv2.zip      # -o: never stop to ask about overwriting (re-runs)
 sudo ./aws/install --update
 rm -rf aws awscliv2.zip
 echo "AWS CLI installation completed #########################################"
@@ -73,8 +84,10 @@ echo "Installing eksctl for platform: $PLATFORM"
 
 curl -sLO "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$PLATFORM.tar.gz"
 
-# Verify checksum
-curl -sL "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_checksums.txt" | grep $PLATFORM | sha256sum --check
+# Verify checksum. Match the exact file name: the checksums file also lists
+# eksctl_<platform>.tar.gz.sbom.json, which we don't download (grep $PLATFORM alone matched both lines).
+curl -sL "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_checksums.txt" \
+  | grep " eksctl_${PLATFORM}.tar.gz$" | sha256sum --check
 
 if [ $? -eq 0 ]; then
     echo "Checksum verification passed"
@@ -93,6 +106,10 @@ echo "install helm ###############################################"
 # Installs the latest Helm release (Helm 4 since Nov 2025; Helm 3 gets security fixes only until Feb 2027).
 # Pin a version with: HELM_VERSION=v4.x.y ./install-req-AL2023.sh
 HELM_VERSION=${HELM_VERSION:-$(curl -s https://api.github.com/repos/helm/helm/releases/latest | grep '"tag_name"' | cut -d '"' -f4)}
+if [ -z "$HELM_VERSION" ]; then
+    echo "Couldn't read the latest Helm version from the GitHub API (rate limit?). Set HELM_VERSION=v4.x.y and re-run."
+    exit 1
+fi
 curl -fsSL -o helm.tar.gz "https://get.helm.sh/helm-${HELM_VERSION}-linux-${KARCH}.tar.gz"
 tar -xzf helm.tar.gz -C /tmp && sudo mv /tmp/linux-${KARCH}/helm /usr/local/bin/helm
 rm -rf helm.tar.gz /tmp/linux-${KARCH}
@@ -103,7 +120,8 @@ echo "helm installation completed #######################################"
 echo "install docker and gettext ###########################################"
 sudo dnf install -y docker gettext
 sudo systemctl enable --now docker
-sudo usermod -aG docker "$USER"   # log out and back in (or run: newgrp docker) to use docker without sudo
+sudo usermod -aG docker "$TARGET_USER"   # takes effect at next login (or: newgrp docker)
+echo "Added $TARGET_USER to the docker group"
 echo "docker installation completed #####################################"
 
 # Verify installations
@@ -120,6 +138,8 @@ echo "helm version:"
 helm version --short
 echo "docker version:"
 docker --version
+
+cd / && rm -rf "$WORKDIR"
 
 echo "#####################################################################"
 echo "Completed all steps for Amazon Linux 2023 ##########################"
