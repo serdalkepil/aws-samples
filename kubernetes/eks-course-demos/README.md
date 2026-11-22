@@ -1,6 +1,6 @@
 # EKS course demos — Running Containers on Amazon EKS
 
-Files for the instructor demos of the 3-day course. The step-by-step scripts (what to type, what to say, what you should see) live in the course knowledge base: `03-Knowledge-Base/AWS_Trainings/Running Kubernetes on Amazon EKS/Demos/`. Each demo file there points back to the paths below.
+Files for the instructor demos of the 3-day course. Each demo has a step-by-step script (what to type, what you should see, what to say, cleanup) in its own folder: click the demo ID in the table. The same files are in the course knowledge base under `Running Kubernetes on Amazon EKS/Demos/`.
 
 All commands assume you run them from the `kubernetes/` folder of this repo and have these set:
 
@@ -13,20 +13,20 @@ export REGISTRY=$ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com
 
 | Demo | Module | Files used |
 |---|---|---|
-| D0 Demo cluster setup (night before) | — | `eks-prerequisites/install-req-AL2023.sh`, `eks-course-demos/cluster/eks-demo-cluster.yaml` |
-| D1 kubectl with multiple clusters | M1 | none (kubeconfig commands only) |
-| D2 Working with AWS Fargate | M2 | `eks-course-demos/d2-fargate/` |
-| D3 Deploying a cluster with eksctl | M3 | `eks-course-demos/cluster/eks-demo-cluster.yaml` |
-| D4 Node groups and Cluster Autoscaler | M3 | `eks-course-demos/d4-cluster-autoscaler/` |
-| D5 Configuring Amazon ECR | M4 | `eks-simple-nodejs-app/` |
-| D6 Deploying applications with Helm | M4 | `eks-helm-nodejs-app/` |
-| D7 Persistent storage with EBS | M8 | `eks-course-demos/d7-ebs-storage/` |
-| D8 RBAC and access entries | M9 | `eks-course-demos/d8-rbac/` |
-| E1 HPA and node scale-out | M5 | `eks-course-demos/e1-hpa/`, `eks-course-demos/d4-cluster-autoscaler/inflate.yaml` |
-| E2 NetworkPolicy default deny | M6 | `eks-course-demos/e2-network-policy/` |
-| E3 Container Insights and audit logs | M7 | `eks-course-demos/e3-observability/` |
-| E4 EKS Pod Identity vs IRSA | M9 | `eks-pod-identity-test/` |
-| E5 Load balancing: NLB Service and ALB Ingress | M6 | `eks-course-demos/e5-load-balancing/`, `eks-simple-nginx/`, `eks-nginx-traffic-sample/` |
+| [D0](cluster/D0-demo-environment-setup.md) Demo cluster setup (night before) | — | `eks-prerequisites/install-req-AL2023.sh`, `eks-course-demos/cluster/eks-demo-cluster.yaml` |
+| [D1](d1-kubectl-contexts/D1-kubectl-with-multiple-clusters.md) kubectl with multiple clusters | M1 | none (kubeconfig commands only) |
+| [D2](d2-fargate/D2-working-with-aws-fargate.md) Working with AWS Fargate | M2 | `eks-course-demos/d2-fargate/` |
+| [D3](cluster/D3-deploying-a-cluster-with-eksctl.md) Deploying a cluster with eksctl | M3 | `eks-course-demos/cluster/eks-demo-cluster.yaml` |
+| [D4](d4-cluster-autoscaler/D4-node-groups-and-cluster-autoscaler.md) Node groups and Cluster Autoscaler | M3 | `eks-course-demos/d4-cluster-autoscaler/` |
+| [D5](../eks-simple-nodejs-app/D5-configuring-amazon-ecr.md) Configuring Amazon ECR | M4 | `eks-simple-nodejs-app/` |
+| [D6](../eks-helm-nodejs-app/D6-deploying-applications-with-helm.md) Deploying applications with Helm | M4 | `eks-helm-nodejs-app/` |
+| [D7](d7-ebs-storage/D7-persistent-storage-with-ebs.md) Persistent storage with EBS | M8 | `eks-course-demos/d7-ebs-storage/` |
+| [D8](d8-rbac/D8-rbac-and-access-entries.md) RBAC and access entries | M9 | `eks-course-demos/d8-rbac/` |
+| [E1](e1-hpa/E1-hpa-and-node-scale-out.md) HPA and node scale-out | M5 | `eks-course-demos/e1-hpa/`, `eks-course-demos/d4-cluster-autoscaler/inflate.yaml` |
+| [E2](e2-network-policy/E2-networkpolicy-default-deny.md) NetworkPolicy default deny | M6 | `eks-course-demos/e2-network-policy/` |
+| [E3](e3-observability/E3-container-insights-and-audit-logs.md) Container Insights and audit logs | M7 | `eks-course-demos/e3-observability/` |
+| [E4](../eks-pod-identity-test/E4-eks-pod-identity-vs-irsa.md) EKS Pod Identity vs IRSA | M9 | `eks-pod-identity-test/` |
+| [E5](e5-load-balancing/E5-load-balancing-nlb-and-alb.md) Load balancing: NLB Service and ALB Ingress | M6 | `eks-course-demos/e5-load-balancing/`, `eks-simple-nginx/`, `eks-nginx-traffic-sample/` |
 
 ## What changed in the older samples (2026-11-22)
 
