@@ -17,4 +17,4 @@ spec:
         - name: pause
           image: registry.k8s.io/pause:3.10
           resources:
-            requests: { cpu: "1", memory: 256Mi }   # 1 vCPU each: an m5.large fits one
+            requests: { cpu: "1", memory: 256Mi }   # 1 vCPU each: a t3.medium (2 vCPU) fits one next to the system Pods

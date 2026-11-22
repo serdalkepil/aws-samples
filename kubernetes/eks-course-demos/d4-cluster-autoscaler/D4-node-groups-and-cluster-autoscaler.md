@@ -44,7 +44,7 @@ aws eks list-access-entries --cluster-name $CLUSTER    # the node role has an EC
 
 ```bash
 eksctl create nodegroup --cluster $CLUSTER --region $AWS_REGION --name mng-bottlerocket \
-  --node-type m5.large --nodes 1 --nodes-min 1 --nodes-max 2 \
+  --node-type t3.medium --nodes 1 --nodes-min 1 --nodes-max 2 \
   --node-ami-family Bottlerocket --node-private-networking
 ```
 
@@ -132,5 +132,5 @@ eksctl delete podidentityassociation --cluster $CLUSTER --region $AWS_REGION \
 |---|---|---|
 | CA log: `AccessDenied` on autoscaling calls | Association created after the Pod started | `kubectl -n kube-system rollout restart $CA_DEPLOY` |
 | CA log: `no node groups found` | ASG not tagged | Check the ASG has `k8s.io/cluster-autoscaler/enabled` and `k8s.io/cluster-autoscaler/eks-demo` tags (D0 config propagates them) |
-| No scale-up although Pods Pending | ASG already at max (5) or Pods request more than an m5.large | Lower replicas/requests |
-| Bottlerocket node group fails | Instance type/AMI not offered in that AZ | Try `m6i.large` |
+| No scale-up although Pods Pending | ASG already at max (5) or Pods request more than a t3.medium | Lower replicas/requests |
+| Bottlerocket node group fails | Instance type/AMI not offered in that AZ | Try `t3a.medium` or `m5.large` |

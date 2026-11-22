@@ -8,7 +8,7 @@
 | **Used by** | Every demo D1–D8 and E1–E5 |
 | **Repo** | `~/src/aws-samples/kubernetes/` → `eks-prerequisites/`, `eks-course-demos/cluster/eks-demo-cluster.yaml` |
 | **Account** | Your instructor demo account, never a student lab account |
-| **Cost** | EKS control plane + 2 × m5.large + 1 NAT gateway while the cluster exists. Delete it after Day 3 (step 9). |
+| **Cost** | EKS control plane + 2 × t3.medium + 1 NAT gateway while the cluster exists. Delete it after Day 3 (step 9). |
 
 ## Step 1 — Workstation
 

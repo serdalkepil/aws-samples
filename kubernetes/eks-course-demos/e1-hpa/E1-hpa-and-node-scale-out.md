@@ -51,7 +51,7 @@ kubectl get pods -l app=php-apache -o wide
 kubectl top nodes
 ```
 
-With 2 × m5.large, some replicas go **Pending** (500m each). If CA is installed:
+With 2 × t3.medium, some replicas go **Pending** (500m each). If CA is installed:
 
 ```bash
 kubectl get nodes -w                  # a new node joins after 1–2 minutes

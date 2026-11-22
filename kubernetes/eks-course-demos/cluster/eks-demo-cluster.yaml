@@ -6,7 +6,7 @@
 #
 # NOT YET RUN END TO END. Written 2026-11-22 against the eksctl schema (eksctl.io/v1alpha5).
 # Run `eksctl create cluster -f eks-demo-cluster.yaml --dry-run` first and fix anything it rejects.
-# Cost while running: EKS control plane + 2x m5.large + 1 NAT gateway + any LBs/EBS from demos.
+# Cost while running: EKS control plane + 2x t3.medium + 1 NAT gateway + any LBs/EBS from demos.
 
 apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
@@ -54,7 +54,11 @@ addons:
 
 managedNodeGroups:
   - name: mng-default
-    instanceType: m5.large
+    # t3.medium (2 vCPU, 4 GiB, max 17 Pods with the VPC CNI) is the smallest type that fits every demo.
+    # t3.small (2 vCPU, 2 GiB) meets the Kubernetes minimum but allows only 11 Pods per node, and the
+    # DaemonSets + system add-ons use about 6-7 of them: E5 and D6 (two releases) run out of Pod slots.
+    # t3 is burstable: in the default "unlimited" mode, sustained CPU (E1 load test) costs a little extra.
+    instanceType: t3.medium
     amiFamily: AmazonLinux2023
     minSize: 2
     desiredCapacity: 2

@@ -49,7 +49,7 @@ Walk it top to bottom, one sentence each:
 | `iam.withOIDC` | OIDC provider for IRSA; Module 9. |
 | `vpc` | Default eksctl VPC, one NAT gateway, API endpoint public + private. |
 | `addons` | VPC CNI (with NetworkPolicy), CoreDNS, kube-proxy, Pod Identity agent, EBS CSI, metrics-server: S25 "EKS add-ons". |
-| `managedNodeGroups` | 2 × m5.large on AL2023 in private subnets, tags for Cluster Autoscaler. |
+| `managedNodeGroups` | 2 × t3.medium on AL2023 in private subnets, tags for Cluster Autoscaler. |
 | `fargateProfiles` | Namespace `fargate-demo` → Fargate (D2). |
 | `cloudWatch` | Control-plane logs api/audit/authenticator (Module 7). |
 
