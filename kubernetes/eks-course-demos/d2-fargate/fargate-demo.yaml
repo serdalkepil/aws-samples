@@ -1,0 +1,32 @@
+# Demo D2 (M2 S22-S24): same Pod spec, two namespaces.
+# Namespace "fargate-demo" matches the Fargate profile fp-demo in cluster/eks-demo-cluster.yaml.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fargate-demo
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: on-fargate
+  namespace: fargate-demo
+  labels: { app: where-am-i }
+spec:
+  containers:
+    - name: nginx
+      image: public.ecr.aws/nginx/nginx:stable
+      resources:
+        requests: { cpu: 250m, memory: 256Mi }   # Fargate sizes the microVM from requests
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: on-ec2
+  namespace: default
+  labels: { app: where-am-i }
+spec:
+  containers:
+    - name: nginx
+      image: public.ecr.aws/nginx/nginx:stable
+      resources:
+        requests: { cpu: 250m, memory: 256Mi }

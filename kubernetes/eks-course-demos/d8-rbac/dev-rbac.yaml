@@ -1,0 +1,29 @@
+# Demo D8 (M9 S23-S28, S36-S37): Role + RoleBinding for the Kubernetes group "dev-team".
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-manager
+  namespace: dev
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dev-team-pod-manager
+  namespace: dev
+subjects:
+  - kind: Group
+    name: dev-team                 # a Kubernetes group name (set on the access entry), not an IAM group
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: pod-manager
+  apiGroup: rbac.authorization.k8s.io

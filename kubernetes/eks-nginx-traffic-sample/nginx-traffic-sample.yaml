@@ -1,124 +1,109 @@
+# Path-based routing demo (M6 S30-S32): /apple and /banana behind ONE Application Load Balancer.
+# Updated 2026-11: the old version used the ingress-nginx controller, which the Kubernetes
+# project retired in March 2026. This version uses the AWS Load Balancer Controller
+# (ingressClassName: alb). On EKS Auto Mode, create an IngressClass for eks.amazonaws.com/alb
+# and use that name instead.
+#
+#   kubectl apply -f nginx-traffic-sample.yaml
+#   kubectl -n traffic-demo get ingress fruit -w        # wait for ADDRESS (2-3 min)
+#   ALB=$(kubectl -n traffic-demo get ingress fruit -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+#   curl http://$ALB/apple ; curl http://$ALB/banana
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: {{namespace}}
-  labels:
-    name: {{namespace}}
-
+  name: traffic-demo
 ---
-
-kind: Pod
-apiVersion: v1
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: banana-app
-  namespace: {{namespace}}
-  labels:
-    app: banana
+  name: apple
+  namespace: traffic-demo
 spec:
-  containers:
-    - name: banana-app
-      image: hashicorp/http-echo
-      args:
-        - "-text=banana"
-      resources:
-        limits:
-          cpu:  100m
-          memory: 100Mi
-        requests:
-          cpu: 50m
-          memory: 50Mi
----
-
-kind: Service
-apiVersion: v1
-metadata:
-  name: banana-service
-  namespace: {{namespace}}
-spec:
+  replicas: 2
   selector:
-    app: banana
-  ports:
-    - port: 5678 # Default port for image
-
+    matchLabels: { app: apple }
+  template:
+    metadata:
+      labels: { app: apple }
+    spec:
+      containers:
+        - name: echo
+          image: hashicorp/http-echo:1.0
+          args: ["-text=apple", "-listen=:5678"]
+          ports: [ { containerPort: 5678 } ]
+          resources:
+            requests: { cpu: 25m, memory: 16Mi }
+            limits: { memory: 32Mi }
 ---
-
-kind: Pod
 apiVersion: v1
-metadata:
-  name: apple-app
-  namespace: {{namespace}}
-  labels:
-    app: apple
-spec:
-  containers:
-    - name: apple-app
-      image: hashicorp/http-echo
-      args:
-        - "-text=apple"
-      resources:
-        limits:
-          cpu:  100m
-          memory: 100Mi
-        requests:
-          cpu: 50m
-          memory: 50Mi
----
-
 kind: Service
-apiVersion: v1
 metadata:
   name: apple-service
-  namespace: {{namespace}}
+  namespace: traffic-demo
 spec:
-  selector:
-    app: apple
-  ports:
-    - port: 5678 # Default port for image
-
+  selector: { app: apple }
+  ports: [ { port: 80, targetPort: 5678 } ]
 ---
-
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: banana
+  namespace: traffic-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: banana }
+  template:
+    metadata:
+      labels: { app: banana }
+    spec:
+      containers:
+        - name: echo
+          image: hashicorp/http-echo:1.0
+          args: ["-text=banana", "-listen=:5678"]
+          ports: [ { containerPort: 5678 } ]
+          resources:
+            requests: { cpu: 25m, memory: 16Mi }
+            limits: { memory: 32Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: banana-service
+  namespace: traffic-demo
+spec:
+  selector: { app: banana }
+  ports: [ { port: 80, targetPort: 5678 } ]
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: ingress-nginx-demo
-  namespace: {{namespace}}
+  name: fruit
+  namespace: traffic-demo
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /
 spec:
+  ingressClassName: alb
   rules:
-  - host: {{external_ip}}
-    http:
-      paths:
-        - path: /apple
-          pathType: Prefix
-          backend:
-            service:
-              name: apple-service
-              port:
-                number: 5678
-        - path: /banana
-          pathType: Prefix
-          backend:
-            service:
-              name: banana-service
-              port:
-                number: 5678
-
+    - http:
+        paths:
+          - path: /apple
+            pathType: Prefix
+            backend:
+              service:
+                name: apple-service
+                port: { number: 80 }      # the Service port, not a NodePort (fixes deck M6 S32)
+          - path: /banana
+            pathType: Prefix
+            backend:
+              service:
+                name: banana-service
+                port: { number: 80 }
 ---
-
-apiVersion: v1
-kind: Pod
-metadata:
-  name: traffic-generator
-  namespace: {{namespace}}
-spec:
-  containers:
-    - name: traffic-generator
-      image: ellerbrock/alpine-bash-curl-ssl
-      command: ["/bin/bash"]
-      args: ["-c", "while :; do curl http://{{external_ip}}/apple > /dev/null 2>&1; curl http://{{external_ip}}/banana > /dev/null 2>&1; sleep 1; done"]
-      resources:
-        limits:
-          cpu:  100m
-          memory: 100Mi
-        requests:
-          cpu: 50m
-          memory: 50Mi
+# Optional: in-cluster traffic generator through the ALB (useful for Lab 4 / Container Insights).
+# Apply after the ALB exists:
+#   ALB=$(kubectl -n traffic-demo get ingress fruit -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+#   kubectl -n traffic-demo run traffic-generator --image=curlimages/curl:8.11.1 --restart=Never -- \
+#     sh -c "while true; do curl -s -o /dev/null http://$ALB/apple; curl -s -o /dev/null http://$ALB/banana; sleep 1; done"

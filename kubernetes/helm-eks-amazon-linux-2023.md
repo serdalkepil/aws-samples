@@ -1,5 +1,7 @@
 # Helm Demo with Amazon EKS on Amazon Linux 2023
 
+> **Updated 2026-11-22.** Tool install URLs, the cluster config, and the image commands are current. For the classroom version of this demo (Module 4, Demo D6), use the step-by-step file `D6 - Deploying applications with Helm.md` in the course's `Demos/` folder; it uses the fixed chart in `eks-helm-nodejs-app/`.
+
 This guide will walk you through setting up Amazon EKS (Elastic Kubernetes Service) on Amazon Linux 2023 and deploying an application using Helm charts.
 
 ## Prerequisites
@@ -55,9 +57,11 @@ This guide will walk you through setting up Amazon EKS (Elastic Kubernetes Servi
 
 ### Install Helm on Amazon Linux 2023
 
-1. Download Helm script and install:
+1. Install the latest Helm release (Helm 4; charts from Helm 3 keep working):
    ```bash
-   curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+   HELM_VERSION=$(curl -s https://api.github.com/repos/helm/helm/releases/latest | grep '"tag_name"' | cut -d '"' -f4)
+   curl -fsSL -o helm.tar.gz "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz"
+   tar -xzf helm.tar.gz -C /tmp && sudo mv /tmp/linux-amd64/helm /usr/local/bin/helm
    ```
 
 2. Verify installation:
@@ -69,7 +73,7 @@ This guide will walk you through setting up Amazon EKS (Elastic Kubernetes Servi
 
 1. Download and extract the latest eksctl release:
    ```bash
-   curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+   curl --silent --location "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
    ```
 
 2. Move the extracted binary to /usr/local/bin:
@@ -89,7 +93,11 @@ Make sure that you have the latest version of the AWS CLI and Docker installed. 
 Retrieve an authentication token and authenticate your Docker client to your registry. Use the AWS CLI:
 
 ```bash
-aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin 029916934188.dkr.ecr.eu-west-1.amazonaws.com
+export AWS_REGION=eu-west-1
+export ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+export REGISTRY=$ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com
+aws ecr create-repository --repository-name nodejs-simple-app --image-scanning-configuration scanOnPush=true 2>/dev/null || true
+aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $REGISTRY
 ```
 
 Note: If you receive an error using the AWS CLI, make sure that you have the latest version of the AWS CLI and Docker installed.
@@ -99,10 +107,13 @@ After the build completes, tag your image so you can push the image to this repo
 Run the following commands to build and push this image to your newly created AWS repository:
 
 ```bash
-docker build -t nodejs-simple-app .
-docker tag nodejs-simple-app:latest 029916934188.dkr.ecr.eu-west-1.amazonaws.com/nodejs-simple-app:latest
-docker push 029916934188.dkr.ecr.eu-west-1.amazonaws.com/nodejs-simple-app:latest
+cd eks-simple-nodejs-app/simple-nodejs-app
+docker build -t nodejs-simple-app:1.0 .          # on Apple silicon add --platform linux/amd64
+docker tag nodejs-simple-app:1.0 $REGISTRY/nodejs-simple-app:1.0
+docker push $REGISTRY/nodejs-simple-app:1.0
 ```
+
+Use a version tag, not `latest`: the cluster then pulls exactly what you pushed.
 
 ## Step 2: Create an Amazon EKS Cluster
 
@@ -119,13 +130,14 @@ You can create an EKS cluster using the AWS Management Console or eksctl.
    metadata:
      name: my-eks-cluster
      region: us-west-2
+     version: "1.35"
    
-   nodeGroups:
+   managedNodeGroups:
      - name: ng-1
        instanceType: t3.medium
+       amiFamily: AmazonLinux2023
        desiredCapacity: 2
-       ssh:
-         allow: false
+       privateNetworking: true
    EOF
    ```
 
@@ -142,7 +154,7 @@ You can create an EKS cluster using the AWS Management Console or eksctl.
 2. Choose "Create cluster"
 3. Fill in the required fields:
    - Name: my-eks-cluster
-   - Kubernetes version: 1.24 or later
+   - Kubernetes version: the newest one offered (1.34 or later are in standard support as of Nov 2026)
    - Role: Create a new role or use an existing one
    - VPC: Create a new VPC or use an existing one
    - Subnets: Select subnets in at least two Availability Zones
@@ -172,12 +184,8 @@ You can create an EKS cluster using the AWS Management Console or eksctl.
 
 ## Step 4: Set Up Helm
 
-1. Add the official Helm stable repository:
-   ```bash
-   helm repo add stable https://charts.helm.sh/stable
-   ```
+The old `stable` repository (`charts.helm.sh/stable`) is archived; don't add it. Find charts on Artifact Hub (https://artifacthub.io) and add the project's own repo, for example the AWS EKS charts in Step 6. Then:
 
-2. Update the Helm repositories:
    ```bash
    helm repo update
    ```
@@ -253,15 +261,16 @@ FluentBit
 
 Custom App
 
+The fixed chart is in `eks-helm-nodejs-app/` (release-scoped labels, Service selector that matches the Pods, probes, optional ALB Ingress). To build one from scratch the way the original demo did:
+
 ```bash
 
-cd eks-helm-nodejs-app/
-mkdir myapp
-cd my-app
+mkdir -p /tmp/helm-scratch && cd /tmp/helm-scratch
 
-# check the files and delete templates folder content 
+# generate a starter chart, then empty its templates so you write them yourself
 helm create my-app
-rm -rf *
+cd my-app
+rm -rf templates/*
 
 # under my-app directory, try to install my-app chart
 helm install --debug --dry-run myreleasedapp .

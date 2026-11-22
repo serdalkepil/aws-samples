@@ -1,139 +1,129 @@
-# Pod Identity Demo
+# EKS Pod Identity Demo
+
+*Updated 2026-11-22 for the "Running Containers on Amazon EKS" course (Module 9, extra demo E4). Manifest: [`pod-identity-deployment.yaml`](pod-identity-deployment.yaml).*
 
 ## Intro
 
-AWS EKS has introduced a new enhanced mechanism called Pod Identity Association for cluster administrators to configure Kubernetes applications to receive IAM permissions required to connect with AWS services outside of the cluster. Pod Identity Association leverages IRSA however, it makes it configurable directly through EKS API, eliminating the need for using IAM API altogether.
+EKS Pod Identity gives Pods their own IAM credentials through the **EKS API**. You don't create an OIDC provider, and the IAM role's trust policy doesn't name a cluster. Instead the role trusts one AWS service principal, `pods.eks.amazonaws.com`, and you link the role to a namespace + service account with a **Pod Identity association**.
 
-As a result, IAM roles no longer need to reference an OIDC provider and hence won't be tied to a single cluster anymore. This means, IAM roles can now be used across multiple EKS clusters without the need to update the role trust policy each time a new cluster is created. This in turn, eliminates the need for role duplication and simplifies the process of automating IRSA altogether.
+Compared with IRSA (IAM roles for service accounts):
 
-### EKS Pod Identity Restrictions
+| | EKS Pod Identity | IRSA |
+|---|---|---|
+| Setup per cluster | Pod Identity Agent add-on | IAM OIDC provider |
+| Role trust policy | `pods.eks.amazonaws.com`, same for every cluster | The cluster's OIDC issuer, updated for every new cluster |
+| Link to the service account | Association in the EKS API | Annotation `eks.amazonaws.com/role-arn` on the service account |
+| Session tags (cluster, namespace, SA) | Yes, usable for ABAC | No |
+| Works outside EKS | No | Yes (self-managed, ROSA, EKS Anywhere) |
 
-- Since we will be using new APIs, you will need to update aws-cli to the latest version.
-- These are the compatible EKS Pod Identity cluster versions.
-- Worker nodes in the cluster have to be Linux Amazon EC2 instances. Fargate and pods that run on Windows Amazon EC2 instances aren’t supported.
+AWS recommends Pod Identity on EKS whenever possible.
 
-## Create IAM Role
+### Restrictions
 
-Create an IAM role with following trust policy
+- Use a recent AWS CLI v2 (the Pod Identity commands are newer than old CLI builds).
+- Nodes must be Linux on Amazon EC2 (managed, self-managed, or Auto Mode). **Fargate Pods and Windows nodes aren't supported.**
+- The AWS SDK in the container must be recent enough to support the container credential provider (all current SDKs and the AWS CLI do).
 
-pod-idenity-s3-example
+## 0. Variables
+
+```bash
+export CLUSTER=eks-demo
+export AWS_REGION=us-east-1
+export ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+```
+
+## 1. Create the IAM role
+
+Trust policy ([`trust-pod-identity.json`](trust-pod-identity.json)). Commands below run from the repo's `kubernetes/` folder.
 
 ```json
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": {
-                "Service": "pods.eks.amazonaws.com"
-            },
-            "Action": [
-                "sts:AssumeRole",
-                "sts:TagSession"
-            ]
-        }
-    ]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "Service": "pods.eks.amazonaws.com" },
+      "Action": ["sts:AssumeRole", "sts:TagSession"]
+    }
+  ]
 }
 ```
 
-Attach AmazonS3ReadOnlyAccess permission.
-
-## Install EKS Pod Identity Agent Add-on to EKS Cluster
-
-You can use web console or following command to install  EKS Pod Identity Agent
-
-```shell
-aws eks create-addon \
-  --cluster-name my-cluster \
-  --addon-name eks-pod-identity-agent \
-  --addon-version v1.0.0-eksbuild.1
+```bash
+aws iam create-role --role-name pod-identity-s3-example \
+  --assume-role-policy-document file://eks-pod-identity-test/trust-pod-identity.json
+aws iam attach-role-policy --role-name pod-identity-s3-example \
+  --policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
 ```
 
-! You need to use latest version of AWS-CLI
+## 2. Install the EKS Pod Identity Agent add-on
 
-Once the addon is installed, you can see the new DaemonSet running in EKS:
+Skip this if the cluster already has it (the course demo cluster and EKS Auto Mode do).
 
-`kubectl get pods -n kube-system`
+```bash
+aws eks describe-addon --cluster-name $CLUSTER --addon-name eks-pod-identity-agent 2>/dev/null \
+  || aws eks create-addon --cluster-name $CLUSTER --addon-name eks-pod-identity-agent
+kubectl get daemonset eks-pod-identity-agent -n kube-system
+```
 
-## Pod Identity Associations
+Don't pin `--addon-version`: let EKS choose the default version for your cluster's Kubernetes version.
 
-Use the new AWS API create-pod-identity-association to attach our IAM role to an EKS service account and namespace:
+## 3. Create the Pod Identity association
 
-```sh
+```bash
 aws eks create-pod-identity-association \
-  --cluster-name your-cluster \
+  --cluster-name $CLUSTER \
+  --namespace default \
   --service-account pod-identity \
-  --role-arn arn:aws:iam:::role/pod-idenity-s3-example \
-  --namespace default
+  --role-arn arn:aws:iam::$ACCOUNT:role/pod-identity-s3-example
 
-aws eks list-pod-identity-associations --cluster-name your-cluster
+aws eks list-pod-identity-associations --cluster-name $CLUSTER
 ```
 
-## Spin up a Test Pod
+The service account doesn't have to exist yet, and it needs **no annotation**.
 
-Create and apply your k8s manifest file as follows.
+## 4. Spin up a test Pod
 
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: pod-identity
-  labels:
-    app: pod-identity
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: pod-identity
-  template:
-    metadata:
-      labels:
-        app: pod-identity
-    spec:
-      serviceAccountName: pod-identity
-      containers:
-      - name: pod-identity
-        image: makoreactor/debug:latest
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: pod-identity
-  labels:
-    app: pod-identity
+```bash
+kubectl apply -f eks-pod-identity-test/pod-identity-deployment.yaml
+kubectl rollout status deploy/pod-identity
 ```
 
-`kubectl apply -f depployment.yaml`
+## 5. Test it
 
+```bash
+POD=$(kubectl get pod -l app=pod-identity -o jsonpath='{.items[0].metadata.name}')
 
-## Test it
+# Who am I? Should be the pod-identity-s3-example role, NOT the node role
+kubectl exec $POD -- aws sts get-caller-identity
 
-Check the local generated credentials
+# Uses the role's permissions
+kubectl exec $POD -- aws s3 ls
 
-```sh
-kubectl get pods
-kubectl exec -ti pod-identity-6798cdbd9d-drswx -- bash
-env | sort
-cat $AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE
-SERVICE_TOKEN=`cat /var/run/secrets/pods.eks.amazonaws.com/serviceaccount/eks-pod-identity-token` 
-curl 169.254.170.23/v1/credentials -H "Authorization: $SERVICE_TOKEN"
-
-You can use with CLI if you configure env. auth. vars
-
-```sh
-export AWS_ACCESS_KEY_ID=ASI...
-export AWS_SECRET_ACCESS_KEY=Kmfg...
-export AWS_SESSION_TOKEN="IQoJb3..." 
-aws sts get-caller-identity
+# What the Pod Identity webhook injected
+kubectl exec $POD -- env | grep AWS_CONTAINER
+#   AWS_CONTAINER_CREDENTIALS_FULL_URI=http://169.254.170.23/v1/credentials
+#   AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE=/var/run/secrets/pods.eks.amazonaws.com/serviceaccount/eks-pod-identity-token
 ```
 
-## Delete Created Resources
+Optional, to show how it works under the hood (the SDK does exactly this):
 
-Delete created resources and addon
+```bash
+kubectl exec -it $POD -- sh -c \
+  'curl -s -H "Authorization: $(cat $AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE)" $AWS_CONTAINER_CREDENTIALS_FULL_URI | head -c 300; echo'
+```
 
-```sh
-kubectl delete deployment pod-identity
-aws eks delete-pod-identity-association --cluster-name eks-cluster --association-id a-kvbxt9pyavos3iwxy
-kubectl delete sa pod-identity
-aws eks delete-addon --cluster-name eks-cluster --addon-name eks-pod-identity-agent
+The agent on the node (link-local address `169.254.170.23`) exchanges the projected service-account token for temporary credentials. Don't print full credentials on the projector.
+
+## 6. Delete created resources
+
+```bash
+kubectl delete -f eks-pod-identity-test/pod-identity-deployment.yaml
+ASSOC=$(aws eks list-pod-identity-associations --cluster-name $CLUSTER \
+  --namespace default --service-account pod-identity --query 'associations[0].associationId' --output text)
+aws eks delete-pod-identity-association --cluster-name $CLUSTER --association-id $ASSOC
+aws iam detach-role-policy --role-name pod-identity-s3-example --policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+aws iam delete-role --role-name pod-identity-s3-example
+# Only if you installed the agent just for this demo:
+# aws eks delete-addon --cluster-name $CLUSTER --addon-name eks-pod-identity-agent
 ```

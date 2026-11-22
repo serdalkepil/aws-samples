@@ -1,19 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ Release.Name }}
+  name: {{ .Release.Name }}
   labels:
-    app: eks-nodejs-helm-app
+    {{- include "nodejs.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: eks-nodejs-helm-app
+      {{- include "nodejs.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        app: eks-nodejs-helm-app
+        {{- include "nodejs.selectorLabels" . | nindent 8 }}
     spec:
+      nodeSelector:
+        kubernetes.io/os: linux
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -21,15 +23,29 @@ spec:
             - matchExpressions:
               - key: kubernetes.io/arch
                 operator: In
-                values:
-                - amd64
-                - arm64
+                values: ["amd64", "arm64"]
       containers:
       - name: nodejs-app
-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        image: "{{ required "Set image.repository to your ECR repository" .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+        - name: APP_VERSION
+          value: {{ .Values.app.version | quote }}
+        - name: APP_COLOR
+          value: {{ .Values.app.color | quote }}
         ports:
         - name: http
           containerPort: 8080
-        imagePullPolicy: {{ .Values.image.pullPolicy }}
-      nodeSelector:
-        kubernetes.io/os: linux
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}

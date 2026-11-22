@@ -8,7 +8,7 @@ echo "############################################ by #Serdal Kepil########"
 echo "update and install prerequisites ##############################################"
 sudo dnf -y update
 sudo dnf groupinstall "Development Tools" -y
-sudo dnf install gcc openssl-devel bzip2-devel libffi-devel zlib-devel xz-devel git curl unzip tar -y
+sudo dnf install gcc openssl-devel bzip2-devel libffi-devel zlib-devel xz-devel git unzip tar -y   # curl-minimal is preinstalled; installing curl would conflict
 echo "update and install prerequisites completed #############################"
 
 # step 2
@@ -36,7 +36,7 @@ echo "python setup completed ################################################"
 
 # step 3
 echo "update AWS CLI version to latest ##############################################"
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+curl "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o "awscliv2.zip"
 unzip awscliv2.zip
 sudo ./aws/install --update
 rm -rf aws awscliv2.zip
@@ -44,9 +44,11 @@ echo "AWS CLI installation completed #########################################"
 
 # step 4
 echo "install kubectl ##############################################"
-# Get latest stable version
-KUBECTL_VERSION=$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)
-curl -LO "https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+# Match kubectl to your cluster (within one minor version). Override with: KUBECTL_VERSION=v1.35.0 ./install-req-AL2023.sh
+# (storage.googleapis.com/kubernetes-release is no longer the download location; dl.k8s.io is.)
+KARCH=$(uname -m); [ "$KARCH" = "aarch64" ] && KARCH=arm64 || KARCH=amd64
+KUBECTL_VERSION=${KUBECTL_VERSION:-$(curl -sL https://dl.k8s.io/release/stable.txt)}
+curl -sLO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${KARCH}/kubectl"
 chmod +x ./kubectl
 sudo mv ./kubectl /usr/local/bin/kubectl
 kubectl version --client
@@ -87,13 +89,22 @@ else
 fi
 
 # step 7 - Additional tools commonly used with Kubernetes
-echo "install helm (optional) ###############################################"
-curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-chmod 700 get_helm.sh
-./get_helm.sh
-rm -f get_helm.sh
+echo "install helm ###############################################"
+# Installs the latest Helm release (Helm 4 since Nov 2025; Helm 3 gets security fixes only until Feb 2027).
+# Pin a version with: HELM_VERSION=v4.x.y ./install-req-AL2023.sh
+HELM_VERSION=${HELM_VERSION:-$(curl -s https://api.github.com/repos/helm/helm/releases/latest | grep '"tag_name"' | cut -d '"' -f4)}
+curl -fsSL -o helm.tar.gz "https://get.helm.sh/helm-${HELM_VERSION}-linux-${KARCH}.tar.gz"
+tar -xzf helm.tar.gz -C /tmp && sudo mv /tmp/linux-${KARCH}/helm /usr/local/bin/helm
+rm -rf helm.tar.gz /tmp/linux-${KARCH}
 helm version
 echo "helm installation completed #######################################"
+
+# step 8 - Docker (for building and pushing images in the ECR demo) and envsubst (for manifests)
+echo "install docker and gettext ###########################################"
+sudo dnf install -y docker gettext
+sudo systemctl enable --now docker
+sudo usermod -aG docker "$USER"   # log out and back in (or run: newgrp docker) to use docker without sudo
+echo "docker installation completed #####################################"
 
 # Verify installations
 echo "Verifying installations ############################################"
@@ -102,11 +113,13 @@ python3 --version
 echo "AWS CLI version:"
 aws --version
 echo "kubectl version:"
-kubectl version --client --short 2>/dev/null || kubectl version --client
+kubectl version --client
 echo "eksctl version:"
 eksctl version
 echo "helm version:"
 helm version --short
+echo "docker version:"
+docker --version
 
 echo "#####################################################################"
 echo "Completed all steps for Amazon Linux 2023 ##########################"

@@ -1,13 +1,22 @@
+# Simple nginx behind a LoadBalancer Service (M6 S27-S29).
+# With the AWS Load Balancer Controller or EKS Auto Mode installed, this creates an internet-facing
+# NLB with IP targets. Without either, remove the loadBalancerClass line and the in-tree cloud
+# provider creates a legacy Classic Load Balancer instead.
 apiVersion: v1
 kind: Service
 metadata:
   name: nginx-project
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
 spec:
   type: LoadBalancer
-  ports:
-    - port: 80
+  loadBalancerClass: service.k8s.aws/nlb   # Auto Mode uses eks.amazonaws.com/nlb
   selector:
     app: nginx-project
+  ports:
+    - port: 80
+      targetPort: 80
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -25,6 +34,12 @@ spec:
     spec:
       containers:
         - name: nginx
-          image: nginx:1.25.3
+          image: public.ecr.aws/nginx/nginx:stable   # ECR Public mirror: no Docker Hub rate limits
           ports:
             - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              memory: 64Mi

@@ -1,0 +1,83 @@
+# eksctl config for the instructor demo cluster — Running Containers on Amazon EKS
+# Companion to "Demo Runbook.md". Create it the NIGHT BEFORE Day 1 (15–20 min):
+#   eksctl create cluster -f eks-demo-cluster.yaml
+# Delete after the course:
+#   eksctl delete cluster -f eks-demo-cluster.yaml --disable-nodegroup-eviction
+#
+# NOT YET RUN END TO END. Written 2026-11-22 against the eksctl schema (eksctl.io/v1alpha5).
+# Run `eksctl create cluster -f eks-demo-cluster.yaml --dry-run` first and fix anything it rejects.
+# Cost while running: EKS control plane + 2x m5.large + 1 NAT gateway + any LBs/EBS from demos.
+
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: eks-demo
+  region: us-east-1
+  # 1.35: in standard support until Mar 2027, in-place Pod resize GA, last version with containerd 1.x.
+  # Newer (1.36, 1.37) also works if your eksctl release offers it.
+  version: "1.35"
+  tags:
+    purpose: aws-training-demo
+    course: running-containers-on-eks
+
+# Access entries + aws-auth both active, so D8 can show the old and the new way.
+accessConfig:
+  authenticationMode: API_AND_CONFIG_MAP
+
+# OIDC provider: needed for IRSA (EBS CSI below uses it; D8/E4 compare IRSA with Pod Identity).
+iam:
+  withOIDC: true
+
+# Default eksctl VPC (192.168.0.0/16, public + private subnets, one NAT gateway) — M3 S8.
+vpc:
+  nat:
+    gateway: Single
+  clusterEndpoints:
+    publicAccess: true
+    privateAccess: true
+
+addons:
+  - name: vpc-cni
+    # Native NetworkPolicy enforcement for demo E2 (M6 S17–S19).
+    configurationValues: '{"enableNetworkPolicy": "true"}'
+  - name: coredns
+  - name: kube-proxy
+  - name: eks-pod-identity-agent          # demos D4 (Cluster Autoscaler) and E4
+  - name: aws-ebs-csi-driver              # demo D7
+    wellKnownPolicies:
+      ebsCSIController: true
+  # metrics-server is needed for HPA (E1) and `kubectl top`. If the add-on name is
+  # rejected in your Region, remove these two lines and install it with Helm instead
+  # (see Demo Runbook, night-before step 4).
+  - name: metrics-server
+
+managedNodeGroups:
+  - name: mng-default
+    instanceType: m5.large
+    amiFamily: AmazonLinux2023
+    minSize: 2
+    desiredCapacity: 2
+    maxSize: 5
+    volumeSize: 30
+    privateNetworking: true
+    # Tags so Cluster Autoscaler can auto-discover this group (demo D4, M5 S19).
+    propagateASGTags: true
+    tags:
+      k8s.io/cluster-autoscaler/enabled: "true"
+      k8s.io/cluster-autoscaler/eks-demo: "owned"
+    labels:
+      role: general
+
+# Fargate profile for demo D2 (M2 S21–S24): any Pod in namespace "fargate-demo"
+# runs on Fargate; Pods in other namespaces go to the managed node group.
+fargateProfiles:
+  - name: fp-demo
+    selectors:
+      - namespace: fargate-demo
+
+# Control-plane logs for M7 S18 and M9 (audit + authenticator).
+cloudWatch:
+  clusterLogging:
+    enableTypes: ["api", "audit", "authenticator"]
+    logRetentionInDays: 7

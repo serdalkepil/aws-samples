@@ -1,0 +1,9 @@
+# M6 S17: deny all ingress and egress for every Pod in the namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: web
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]

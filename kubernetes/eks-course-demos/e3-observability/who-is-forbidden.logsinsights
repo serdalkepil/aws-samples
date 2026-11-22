@@ -1,0 +1,4 @@
+fields @timestamp, user.username, verb, objectRef.resource, objectRef.namespace, responseStatus.code
+| filter responseStatus.code = 403
+| sort @timestamp desc
+| limit 25

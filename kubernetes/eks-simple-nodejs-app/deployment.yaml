@@ -1,3 +1,12 @@
+# Plain-manifest version of the NodeJS app (no Helm).
+# Set IMAGE first, then apply with envsubst so the account ID isn't hard-coded:
+#   export IMAGE=$ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com/nodejs-simple-app:1.0
+#   envsubst < deployment.yaml | kubectl apply -f -
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: eks-nodejs-app
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,6 +24,8 @@ spec:
       labels:
         app: eks-nodejs-app
     spec:
+      nodeSelector:
+        kubernetes.io/os: linux
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -22,15 +33,52 @@ spec:
             - matchExpressions:
               - key: kubernetes.io/arch
                 operator: In
-                values:
-                - amd64
-                - arm64
+                values: ["amd64", "arm64"]
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app: eks-nodejs-app
       containers:
       - name: nodejs-app
-        image: 029916934188.dkr.ecr.eu-west-1.amazonaws.com/test:latest
+        image: ${IMAGE}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: APP_VERSION
+          value: "1.0"
         ports:
         - name: http
           containerPort: 8080
-        imagePullPolicy: IfNotPresent
-      nodeSelector:
-        kubernetes.io/os: linux
+        resources:
+          requests:
+            cpu: 100m
+            memory: 64Mi
+          limits:
+            memory: 128Mi
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eks-nodejs-service
+  namespace: eks-nodejs-app
+spec:
+  type: ClusterIP
+  selector:
+    app: eks-nodejs-app
+  ports:
+  - name: http
+    port: 80
+    targetPort: http

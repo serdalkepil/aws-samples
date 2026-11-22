@@ -1,0 +1,21 @@
+# Optional D2 follow-up (M2 S26): a DaemonSet never schedules onto Fargate "nodes".
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-agent
+  namespace: fargate-demo
+spec:
+  selector:
+    matchLabels: { app: node-agent }
+  template:
+    metadata:
+      labels: { app: node-agent }
+    spec:
+      nodeSelector:
+        eks.amazonaws.com/compute-type: fargate   # target only Fargate nodes: none will ever run
+      containers:
+        - name: agent
+          image: public.ecr.aws/docker/library/busybox:stable
+          command: ["sh", "-c", "while true; do sleep 3600; done"]
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }

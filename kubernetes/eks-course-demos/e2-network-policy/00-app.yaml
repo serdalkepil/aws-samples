@@ -1,0 +1,50 @@
+# Extra demo E2 (M6 S17-S19). Needs NetworkPolicy enforcement (VPC CNI enableNetworkPolicy=true).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: web
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  namespace: web
+  labels: { app: nginx }
+spec:
+  containers:
+    - name: nginx
+      image: public.ecr.aws/nginx/nginx:stable
+      ports: [ { containerPort: 80 } ]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  namespace: web
+spec:
+  selector: { app: nginx }
+  ports: [ { port: 80 } ]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: client
+  namespace: web
+  labels: { app: client }
+spec:
+  containers:
+    - name: client
+      image: public.ecr.aws/docker/library/busybox:stable
+      command: ["sleep", "3600"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: intruder
+  namespace: web
+  labels: { app: intruder }
+spec:
+  containers:
+    - name: intruder
+      image: public.ecr.aws/docker/library/busybox:stable
+      command: ["sleep", "3600"]

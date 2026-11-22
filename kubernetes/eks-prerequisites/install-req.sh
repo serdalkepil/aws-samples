@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# DEPRECATED (2026-11): Amazon Linux 2 reached end of support on 30 June 2026 and Cloud9 is closed
+# to new customers. Use install-req-AL2023.sh on Amazon Linux 2023 (EC2, CloudShell-like hosts) instead.
+# Kept for reference only.
 
 echo "#####################################################################"
 echo "Cloud9 k8s Tools Installation Script ################################"
@@ -35,7 +38,7 @@ echo "update AWS CLI version to latest is done #################################
 
 # step 4
 echo "install kubectl ##############################################"
-curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
 chmod +x ./kubectl
 sudo mv ./kubectl /usr/local/bin/kubectl
 echo "install kubectl is done ##############################################"

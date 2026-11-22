@@ -1,15 +1,14 @@
 {
-  "name": "first-run",
+  "name": "simple-nodejs-app",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Tiny Express app for the EKS course demos (ECR, Helm, Services, self-healing)",
+  "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node app.js"
   },
   "author": "Serdal Kepil / CloudMetrik",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.17.1",
-    "body-parser": "^1.19.0"
+    "express": "^4.21.2"
   }
 }

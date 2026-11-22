@@ -1,0 +1,10 @@
+Release "{{ .Release.Name }}" deployed: {{ .Values.replicaCount }} replica(s) of {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }} (app version {{ .Values.app.version }}).
+
+Try it:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ .Release.Name }} 8080:{{ .Values.service.port }}
+  open http://localhost:8080
+{{- if .Values.ingress.enabled }}
+
+ALB address (takes 2-3 minutes):
+  kubectl -n {{ .Release.Namespace }} get ingress {{ .Release.Name }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+{{- end }}

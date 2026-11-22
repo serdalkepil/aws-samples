@@ -1,0 +1,23 @@
+# Demo D7 (M8 S30): StorageClass -> PVC -> Pod, then delete Pod + PVC and watch the PV stay (Retain).
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ebs-retain
+provisioner: ebs.csi.aws.com            # EKS Auto Mode: ebs.csi.eks.amazonaws.com
+volumeBindingMode: WaitForFirstConsumer # create the volume in the AZ where the Pod lands
+reclaimPolicy: Retain                   # the point of the demo
+allowVolumeExpansion: true
+parameters:
+  type: gp3
+  encrypted: "true"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-pvc
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: ebs-retain
+  resources:
+    requests:
+      storage: 4Gi
